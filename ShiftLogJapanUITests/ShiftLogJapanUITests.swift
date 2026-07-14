@@ -10,10 +10,56 @@ import XCTest
         return app
     }
 
+    private func launchOnboarding() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchEnvironment["UITEST_MODE"] = "1"
+        app.launchEnvironment["UITEST_ONBOARDING"] = "1"
+        app.launchEnvironment["UITEST_LOCALE"] = "zh-Hans"
+        app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh-Hans"]
+        app.launch()
+        return app
+    }
+
     func testOnboardingOrMainInterfaceLaunches() {
         let app = launch()
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 5))
         XCTAssertGreaterThan(app.buttons.count, 0)
+    }
+
+    func testOnboardingLanguageSelectionUpdatesCurrentAndFollowingPages() {
+        let cases = [
+            (option: "简体中文", languageTitle: "选择界面语言", continueTitle: "继续", purposeTitle: "你的主要用途", calendarTitle: "日历"),
+            (option: "日本語", languageTitle: "表示言語を選択", continueTitle: "次へ", purposeTitle: "主な利用目的", calendarTitle: "カレンダー"),
+            (option: "English", languageTitle: "Choose a language", continueTitle: "Continue", purposeTitle: "How will you use the app?", calendarTitle: "Calendar")
+        ]
+
+        for item in cases {
+            let app = launchOnboarding()
+            let option = app.buttons[item.option]
+            XCTAssertTrue(option.waitForExistence(timeout: 3))
+            option.tap()
+
+            let languageTitle = app.staticTexts["onboarding.language.title"]
+            XCTAssertTrue(languageTitle.waitForExistence(timeout: 2))
+            XCTAssertEqual(languageTitle.label, item.languageTitle)
+            let continueButton = app.buttons["onboarding.continue"]
+            XCTAssertEqual(continueButton.label, item.continueTitle)
+            continueButton.tap()
+
+            let purposeTitle = app.staticTexts["onboarding.purpose.title"]
+            XCTAssertTrue(purposeTitle.waitForExistence(timeout: 2))
+            XCTAssertEqual(purposeTitle.label, item.purposeTitle)
+
+            continueButton.tap()
+            continueButton.tap()
+            let jobName = app.textFields["onboarding.job.name"]
+            XCTAssertTrue(jobName.waitForExistence(timeout: 2))
+            jobName.tap()
+            jobName.typeText("Test Job")
+            continueButton.tap()
+            XCTAssertTrue(app.tabBars.buttons[item.calendarTitle].waitForExistence(timeout: 3))
+            app.terminate()
+        }
     }
 
     func testEarningsRangeTitlesAreLocalizedInAllLanguages() {

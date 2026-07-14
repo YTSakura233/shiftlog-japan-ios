@@ -5,7 +5,7 @@ struct OnboardingView: View {
     @Environment(\.modelContext) private var context
     let existingSettings: UserSettings?
     @State private var step = 0
-    @State private var localeCode = "zh-Hans"
+    @State private var localeCode: String
     @State private var purpose = "student"
     @State private var limitEnabled = true
     @State private var weeklyHours = 28
@@ -14,6 +14,11 @@ struct OnboardingView: View {
     @State private var hourlyText = "1,200"
     @State private var issues: [FormIssue] = []
     @FocusState private var wageFieldFocused: Bool
+
+    init(existingSettings: UserSettings?) {
+        self.existingSettings = existingSettings
+        _localeCode = State(initialValue: existingSettings?.localeCode ?? Self.preferredLocaleCode())
+    }
 
     var body: some View {
         NavigationStack {
@@ -31,6 +36,7 @@ struct OnboardingView: View {
                 Button(step == 3 ? "onboarding.finish" : "common.continue") {
                     if step < 3 { step += 1 } else { finish() }
                 }
+                .accessibilityIdentifier("onboarding.continue")
                 .buttonStyle(.borderedProminent).controlSize(.large)
             }
             .padding(24).navigationTitle("app.name").navigationBarTitleDisplayMode(.inline)
@@ -41,12 +47,14 @@ struct OnboardingView: View {
                 }
             }
         }
+        .environment(\.locale, selectedLocale)
     }
 
     private var languageStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             Image(systemName: "globe.asia.australia.fill").font(.system(size: 56)).foregroundStyle(.tint)
             Text("onboarding.language.title").font(.largeTitle.bold())
+                .accessibilityIdentifier("onboarding.language.title")
             Picker("onboarding.language.title", selection: $localeCode) {
                 Text("简体中文").tag("zh-Hans"); Text("日本語").tag("ja"); Text("English").tag("en")
             }.pickerStyle(.segmented)
@@ -58,6 +66,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 16) {
             Image(systemName: "person.text.rectangle").font(.system(size: 52)).foregroundStyle(.tint)
             Text("onboarding.purpose.title").font(.largeTitle.bold())
+                .accessibilityIdentifier("onboarding.purpose.title")
             Picker("onboarding.purpose.title", selection: $purpose) {
                 Text("purpose.student").tag("student")
                 Text("purpose.family").tag("family")
@@ -88,6 +97,7 @@ struct OnboardingView: View {
             Image(systemName: "briefcase.fill").font(.system(size: 52)).foregroundStyle(.teal)
             Text("onboarding.job.title").font(.largeTitle.bold())
             TextField("job.name", text: $jobName)
+                .accessibilityIdentifier("onboarding.job.name")
                 .textFieldStyle(.roundedBorder)
                 .onChange(of: jobName) { _, _ in clearResolvedIssues() }
             if let issue = issues.first(where: { $0.fieldID == "job.field.name" }) { InlineFieldError(message: issue.message) }
@@ -108,15 +118,15 @@ struct OnboardingView: View {
     private func finish() {
         var problems: [FormIssue] = []
         if jobName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            problems.append(FormIssue("job.name.required", message: String(localized: "error.job.name.required"), fieldID: "job.field.name"))
+            problems.append(FormIssue("job.name.required", message: String(localized: "error.job.name.required", locale: selectedLocale), fieldID: "job.field.name"))
         }
         let hourlyAmount: Decimal
         do { hourlyAmount = try WageInputParser.parseJPY(hourlyText) }
         catch {
             let message: String = switch error as? WageInputError {
-            case .empty: String(localized: "error.job.wage.required")
-            case .nonPositive: String(localized: "error.job.wage.positive")
-            default: String(localized: "error.job.wage.invalid")
+            case .empty: String(localized: "error.job.wage.required", locale: selectedLocale)
+            case .nonPositive: String(localized: "error.job.wage.positive", locale: selectedLocale)
+            default: String(localized: "error.job.wage.invalid", locale: selectedLocale)
             }
             problems.append(FormIssue("job.wage.invalid", message: message, fieldID: "job.field.wage"))
             hourlyAmount = 0
@@ -151,6 +161,15 @@ struct OnboardingView: View {
 
     private func formatWageIfValid() {
         guard let amount = try? WageInputParser.parseJPY(hourlyText) else { return }
-        hourlyText = WageInputParser.formatJPY(amount)
+        hourlyText = WageInputParser.formatJPY(amount, locale: selectedLocale)
+    }
+
+    private var selectedLocale: Locale { Locale(identifier: localeCode) }
+
+    private static func preferredLocaleCode(_ locale: Locale = .current) -> String {
+        let identifier = locale.identifier.lowercased()
+        if identifier.hasPrefix("ja") { return "ja" }
+        if identifier.hasPrefix("en") { return "en" }
+        return "zh-Hans"
     }
 }

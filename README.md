@@ -62,7 +62,7 @@ xcodebuild -project ShiftLogJapan.xcodeproj \
   -derivedDataPath /tmp/ShiftLogDerived test
 ```
 
-本次交付验证环境：Xcode 26.6、iPhone 17 Pro / iOS 26.5。App 和全部测试目标编译成功；20 项单元测试及 6 项 UI 测试通过。
+本次交付验证环境：Xcode 26.6、iPhone 17 Pro / iOS 26.5。App 和全部测试目标编译成功；20 项单元测试及 7 项 UI 测试通过。
 
 ## 权限用途
 

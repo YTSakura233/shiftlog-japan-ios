@@ -3,7 +3,7 @@ import SwiftData
 import Charts
 
 enum EarningsRange: String, CaseIterable, Identifiable {
-    case day, week, month, year, custom
+    case day, week, month, payPeriod, year, custom
     var id: String { rawValue }
     var localizedTitle: String {
         localizedTitle(locale: .current)
@@ -14,6 +14,7 @@ enum EarningsRange: String, CaseIterable, Identifiable {
         case .day: String(localized: "range.day", defaultValue: "Day", locale: locale)
         case .week: String(localized: "range.week", defaultValue: "Week", locale: locale)
         case .month: String(localized: "range.month", defaultValue: "Month", locale: locale)
+        case .payPeriod: String(localized: "range.payPeriod", defaultValue: "Pay period", locale: locale)
         case .year: String(localized: "range.year", defaultValue: "Year", locale: locale)
         case .custom: String(localized: "range.custom", defaultValue: "Custom", locale: locale)
         }
@@ -59,6 +60,17 @@ struct EarningsView: View {
             return DateInterval(start: start, end: calendar.date(byAdding: .day, value: 1, to: start)!)
         case .week: return calendar.dateInterval(of: .weekOfYear, for: anchor)!
         case .month: return DateInterval(start: anchor.startOfMonth, end: anchor.endOfMonth)
+        case .payPeriod:
+            guard let job = jobs.first(where: { $0.id == selectedJobID }) else {
+                return DateInterval(start: anchor.startOfMonth, end: anchor.endOfMonth)
+            }
+            let period = PayPeriodEngine.period(
+                containing: anchor, kind: job.payPeriodKind,
+                closingDay: job.payClosingDay, payDay: job.payDay,
+                weekStartDay: job.payWeekStartDay, anchor: job.payPeriodAnchor,
+                payWeekday: job.payWeekday
+            )
+            return DateInterval(start: period.start, end: period.end)
         case .year:
             let start = calendar.date(from: calendar.dateComponents([.year], from: anchor))!
             return DateInterval(start: start, end: calendar.date(byAdding: .year, value: 1, to: start)!)
@@ -110,6 +122,7 @@ struct EarningsView: View {
                     ForEach(EarningsRange.allCases) { option in
                         Button {
                             range = option
+                            if option == .payPeriod, selectedJobID == nil { selectedJobID = jobs.first?.id }
                         } label: {
                             Text(option.localizedTitle(locale: locale))
                                 .font(.subheadline.weight(range == option ? .semibold : .regular))
@@ -197,10 +210,14 @@ struct EarningsView: View {
     }
 
     private func move(_ amount: Int) {
+        if range == .payPeriod {
+            anchor = amount < 0 ? interval.start.addingTimeInterval(-1) : interval.end.addingTimeInterval(1)
+            return
+        }
         let component: Calendar.Component = switch range {
         case .day: .day
         case .week: .weekOfYear
-        case .month, .custom: .month
+        case .month, .custom, .payPeriod: .month
         case .year: .year
         }
         anchor = Calendar.current.date(byAdding: component, value: amount, to: anchor) ?? anchor
@@ -211,12 +228,18 @@ struct PaymentEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Query private var jobs: [Job]
+    @Query private var shifts: [Shift]
     let defaultInterval: DateInterval
     @State private var jobID: UUID?
     @State private var start: Date
     @State private var end: Date
     @State private var gross = 0
-    @State private var deductions = 0
+    @State private var incomeTax = 0
+    @State private var employmentInsurance = 0
+    @State private var healthInsurance = 0
+    @State private var pension = 0
+    @State private var residentTax = 0
+    @State private var otherDeductions = 0
     @State private var received = 0
     @State private var receivedDate = Date()
     @State private var notes = ""
@@ -236,11 +259,21 @@ struct PaymentEditorView: View {
                 DatePicker("range.start", selection: $start, displayedComponents: .date)
                 DatePicker("range.end", selection: $end, in: start..., displayedComponents: .date)
                 Stepper(value: $gross, in: 0...10_000_000, step: 100) { LabeledContent("payment.gross", value: CurrencyFormatter.string(Decimal(gross))) }
-                Stepper(value: $deductions, in: 0...10_000_000, step: 100) { LabeledContent("payment.deductions", value: CurrencyFormatter.string(Decimal(deductions))) }
+                Section("payment.deductions") {
+                    moneyStepper("payment.incomeTax", value: $incomeTax)
+                    moneyStepper("payment.employmentInsurance", value: $employmentInsurance)
+                    moneyStepper("payment.healthInsurance", value: $healthInsurance)
+                    moneyStepper("payment.pension", value: $pension)
+                    moneyStepper("payment.residentTax", value: $residentTax)
+                    moneyStepper("payment.otherDeductions", value: $otherDeductions)
+                    LabeledContent("payment.deductions", value: CurrencyFormatter.string(Decimal(totalDeductions)))
+                }
                 Stepper(value: $received, in: 0...10_000_000, step: 100) { LabeledContent("payment.received", value: CurrencyFormatter.string(Decimal(received))) }
                 DatePicker("payment.receivedDate", selection: $receivedDate, displayedComponents: .date)
                 TextField("shift.notes", text: $notes, axis: .vertical)
-                if gross > 0 { LabeledContent("payment.difference", value: CurrencyFormatter.string(Decimal(received - (gross - deductions)))) }
+                LabeledContent("payment.estimated", value: CurrencyFormatter.string(estimatedLabor + estimatedTransport))
+                LabeledContent("payment.includedShifts", value: "\(includedShifts.count)")
+                if gross > 0 { LabeledContent("payment.difference", value: CurrencyFormatter.string(Decimal(received - (gross - totalDeductions)))) }
                 Text("disclaimer.payment").font(.caption).foregroundStyle(.secondary)
             }
             .navigationTitle("payment.add").navigationBarTitleDisplayMode(.inline)
@@ -250,13 +283,53 @@ struct PaymentEditorView: View {
         }
     }
 
+    private var includedShifts: [Shift] {
+        guard let jobID else { return [] }
+        let inclusiveEnd = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: end)) ?? end
+        return shifts.filter {
+            !$0.isDeleted && $0.status != .cancelled && $0.jobID == jobID &&
+            $0.scheduledStart < inclusiveEnd && $0.scheduledEnd > start
+        }
+    }
+
+    private var estimatedLabor: Decimal {
+        includedShifts.reduce(0) { result, shift in
+            result + (shift.snapshotBaseWage ?? 0) + (shift.snapshotPremiumWage ?? 0) + shift.bonusAmount - shift.deductionAmount
+        }
+    }
+
+    private var estimatedTransport: Decimal {
+        includedShifts.reduce(0) { $0 + $1.transportAmount }
+    }
+
+    private var totalDeductions: Int {
+        incomeTax + employmentInsurance + healthInsurance + pension + residentTax + otherDeductions
+    }
+
+    private func moneyStepper(_ key: String, value: Binding<Int>) -> some View {
+        Stepper(value: value, in: 0...10_000_000, step: 100) {
+            LabeledContent(LocalizedStringKey(key), value: CurrencyFormatter.string(Decimal(value.wrappedValue)))
+        }
+    }
+
     private func save() {
         guard let jobID else {
             issues = [FormIssue("payment.job.required", message: String(localized: "error.job.required"), fieldID: "payment.field.job")]
             return
         }
         let payment = Payment(jobID: jobID, periodStart: start, periodEnd: end)
-        payment.grossAmount = Decimal(gross); payment.deductions = Decimal(deductions); payment.receivedAmount = Decimal(received); payment.receivedDate = receivedDate; payment.notes = notes
+        payment.estimatedLabor = estimatedLabor
+        payment.transportAmount = estimatedTransport
+        payment.grossAmount = Decimal(gross)
+        payment.incomeTax = Decimal(incomeTax)
+        payment.employmentInsurance = Decimal(employmentInsurance)
+        payment.healthInsurance = Decimal(healthInsurance)
+        payment.pension = Decimal(pension)
+        payment.residentTax = Decimal(residentTax)
+        payment.otherDeductions = Decimal(otherDeductions)
+        payment.deductions = Decimal(totalDeductions)
+        payment.includedShiftIDsCSV = includedShifts.map { $0.id.uuidString }.joined(separator: ",")
+        payment.receivedAmount = Decimal(received); payment.receivedDate = receivedDate; payment.notes = notes
         context.insert(payment)
         do { try context.save(); dismiss() }
         catch { issues = [FormIssue("save.failed", message: String(format: String(localized: "error.save.failed"), error.localizedDescription))] }

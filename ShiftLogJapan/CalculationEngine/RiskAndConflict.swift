@@ -99,6 +99,34 @@ enum WorkLimitEngine {
 
 struct PayPeriod: Equatable, Sendable { let start: Date; let end: Date; let payDate: Date }
 
+enum RecurrenceEditScope: String, CaseIterable, Identifiable, Sendable {
+    case thisOccurrence, thisAndFuture, entireSeries
+    var id: String { rawValue }
+}
+
+struct RecurrenceOccurrence: Equatable, Sendable {
+    let id: UUID
+    let start: Date
+}
+
+enum RecurrenceSeriesEngine {
+    static func targetIDs(
+        occurrences: [RecurrenceOccurrence],
+        anchorID: UUID,
+        scope: RecurrenceEditScope
+    ) -> [UUID] {
+        guard let anchor = occurrences.first(where: { $0.id == anchorID }) else { return [] }
+        switch scope {
+        case .thisOccurrence:
+            return [anchorID]
+        case .thisAndFuture:
+            return occurrences.filter { $0.start >= anchor.start }.sorted { $0.start < $1.start }.map(\.id)
+        case .entireSeries:
+            return occurrences.sorted { $0.start < $1.start }.map(\.id)
+        }
+    }
+}
+
 enum PayPeriodEngine {
     static func monthly(containing date: Date, closingDay: Int, payDay: Int, calendar: Calendar = .current) -> PayPeriod {
         let day = calendar.component(.day, from: date)
@@ -116,5 +144,55 @@ enum PayPeriodEngine {
         let payMonthDays = calendar.range(of: .day, in: .month, for: payMonth)!.count
         let payDate = calendar.date(bySetting: .day, value: min(payDay, payMonthDays), of: payMonth)!
         return PayPeriod(start: start, end: calendar.date(byAdding: .day, value: 1, to: end)!, payDate: payDate)
+    }
+
+    static func weekly(
+        containing date: Date,
+        intervalWeeks: Int = 1,
+        weekStartDay: Int = 2,
+        anchor: Date = Date(timeIntervalSince1970: 0),
+        payWeekday: Int = 6,
+        calendar baseCalendar: Calendar = .current
+    ) -> PayPeriod {
+        var calendar = baseCalendar
+        calendar.firstWeekday = weekStartDay
+        let weeks = max(1, intervalWeeks)
+        let normalizedAnchor = calendar.dateInterval(of: .weekOfYear, for: anchor)?.start
+            ?? calendar.startOfDay(for: anchor)
+        let targetWeek = calendar.dateInterval(of: .weekOfYear, for: date)?.start
+            ?? calendar.startOfDay(for: date)
+        let dayDistance = calendar.dateComponents([.day], from: normalizedAnchor, to: targetWeek).day ?? 0
+        let periodIndex = Int(floor(Double(dayDistance) / Double(7 * weeks)))
+        let start = calendar.date(byAdding: .day, value: periodIndex * 7 * weeks, to: normalizedAnchor)!
+        let end = calendar.date(byAdding: .day, value: 7 * weeks, to: start)!
+        let payDate = nextWeekday(payWeekday, onOrAfter: end, calendar: calendar)
+        return PayPeriod(start: start, end: end, payDate: payDate)
+    }
+
+    static func period(
+        containing date: Date,
+        kind: PayPeriodKind,
+        closingDay: Int,
+        payDay: Int,
+        weekStartDay: Int,
+        anchor: Date,
+        payWeekday: Int,
+        calendar: Calendar = .current
+    ) -> PayPeriod {
+        switch kind {
+        case .monthly:
+            monthly(containing: date, closingDay: closingDay, payDay: payDay, calendar: calendar)
+        case .weekly:
+            weekly(containing: date, weekStartDay: weekStartDay, anchor: anchor, payWeekday: payWeekday, calendar: calendar)
+        case .biweekly:
+            weekly(containing: date, intervalWeeks: 2, weekStartDay: weekStartDay, anchor: anchor, payWeekday: payWeekday, calendar: calendar)
+        }
+    }
+
+    private static func nextWeekday(_ weekday: Int, onOrAfter date: Date, calendar: Calendar) -> Date {
+        let start = calendar.startOfDay(for: date)
+        let current = calendar.component(.weekday, from: start)
+        let offset = (min(7, max(1, weekday)) - current + 7) % 7
+        return calendar.date(byAdding: .day, value: offset, to: start)!
     }
 }

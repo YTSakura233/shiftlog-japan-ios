@@ -93,6 +93,66 @@ final class CalculationEngineTests: XCTestCase {
         XCTAssertEqual(calendar.component(.day, from: period.payDate), 31)
     }
 
+    func testWeeklyAndBiweeklyPayPeriodsUseConfiguredBoundaries() {
+        let anchor = date(2026, 7, 6, 0) // Monday
+        let weekly = PayPeriodEngine.weekly(
+            containing: date(2026, 7, 15, 12), weekStartDay: 2,
+            anchor: anchor, payWeekday: 6, calendar: calendar
+        )
+        XCTAssertEqual(weekly.start, date(2026, 7, 13, 0))
+        XCTAssertEqual(weekly.end, date(2026, 7, 20, 0))
+        XCTAssertEqual(weekly.payDate, date(2026, 7, 24, 0))
+
+        let biweekly = PayPeriodEngine.weekly(
+            containing: date(2026, 7, 15, 12), intervalWeeks: 2,
+            weekStartDay: 2, anchor: anchor, payWeekday: 6, calendar: calendar
+        )
+        XCTAssertEqual(biweekly.start, date(2026, 7, 6, 0))
+        XCTAssertEqual(biweekly.end, date(2026, 7, 20, 0))
+        XCTAssertEqual(biweekly.payDate, date(2026, 7, 24, 0))
+    }
+
+    func testRecurrenceScopesSelectExpectedOccurrences() {
+        let first = RecurrenceOccurrence(id: UUID(), start: date(2026, 7, 7, 9))
+        let anchor = RecurrenceOccurrence(id: UUID(), start: date(2026, 7, 14, 9))
+        let last = RecurrenceOccurrence(id: UUID(), start: date(2026, 7, 21, 9))
+        let occurrences = [last, first, anchor]
+        XCTAssertEqual(RecurrenceSeriesEngine.targetIDs(occurrences: occurrences, anchorID: anchor.id, scope: .thisOccurrence), [anchor.id])
+        XCTAssertEqual(RecurrenceSeriesEngine.targetIDs(occurrences: occurrences, anchorID: anchor.id, scope: .thisAndFuture), [anchor.id, last.id])
+        XCTAssertEqual(RecurrenceSeriesEngine.targetIDs(occurrences: occurrences, anchorID: anchor.id, scope: .entireSeries), [first.id, anchor.id, last.id])
+    }
+
+    func testBackupVersionTwoRoundTripsAndVersionOneStillDecodes() throws {
+        let job = Job(displayName: "Legacy Job", hourlyAmount: 1_200)
+        job.payPeriodKindRaw = PayPeriodKind.biweekly.rawValue
+        job.payPeriodAnchor = date(2026, 7, 6, 0)
+        let payment = Payment(jobID: job.id, periodStart: date(2026, 7, 1, 0), periodEnd: date(2026, 7, 31, 0))
+        payment.deductions = 500
+        payment.incomeTax = 300
+        payment.otherDeductions = 200
+        payment.includedShiftIDsCSV = UUID().uuidString
+        let encoded = try BackupService.encode(settings: [], jobs: [job], rates: [], rules: [], shifts: [], breaks: [], payments: [payment])
+        let current = try BackupService.decode(encoded)
+        XCTAssertEqual(current.version, 2)
+        XCTAssertEqual(current.jobs.first?.payPeriodKindRaw, PayPeriodKind.biweekly.rawValue)
+        XCTAssertEqual(current.payments.first?.incomeTax, 300)
+        XCTAssertEqual(current.payments.first?.includedShiftIDsCSV, payment.includedShiftIDsCSV)
+
+        var root = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        root["version"] = 1
+        var jobs = try XCTUnwrap(root["jobs"] as? [[String: Any]])
+        ["payPeriodKindRaw", "payWeekStartDay", "payWeekday", "payPeriodAnchor", "payReminderEnabled", "payReminderDaysBefore", "shiftEndReminderEnabled"].forEach { jobs[0].removeValue(forKey: $0) }
+        root["jobs"] = jobs
+        var payments = try XCTUnwrap(root["payments"] as? [[String: Any]])
+        ["incomeTax", "employmentInsurance", "healthInsurance", "pension", "residentTax", "otherDeductions", "includedShiftIDsCSV"].forEach { payments[0].removeValue(forKey: $0) }
+        root["payments"] = payments
+
+        let decoded = try BackupService.decode(JSONSerialization.data(withJSONObject: root))
+        XCTAssertEqual(decoded.version, 1)
+        XCTAssertNil(decoded.jobs.first?.payPeriodKindRaw)
+        XCTAssertNil(decoded.payments.first?.otherDeductions)
+    }
+
     func testNullAdProviderNeverReturnsContent() {
         XCTAssertNil(NullAdProvider().contentIdentifier(for: .calendarSummary))
         XCTAssertFalse(AppConfiguration.advertisingEnabled)
@@ -151,7 +211,7 @@ final class CalculationEngineTests: XCTestCase {
     }
 
     func testEarningsRangeTitlesNeverExposeLocalizationKeys() {
-        XCTAssertEqual(Set(EarningsRange.allCases.map(\.rawValue)), Set(["day", "week", "month", "year", "custom"]))
+        XCTAssertEqual(Set(EarningsRange.allCases.map(\.rawValue)), Set(["day", "week", "month", "payPeriod", "year", "custom"]))
         XCTAssertTrue(EarningsRange.allCases.allSatisfy { !$0.localizedTitle.hasPrefix("range.") && !$0.localizedTitle.isEmpty })
     }
 }

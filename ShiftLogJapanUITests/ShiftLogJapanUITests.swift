@@ -18,14 +18,14 @@ import XCTest
 
     func testEarningsRangeTitlesAreLocalizedInAllLanguages() {
         let cases = [
-            ("zh-Hans", ["日", "周", "月", "年", "自定义"]),
-            ("ja", ["日", "週", "月", "年", "期間指定"]),
-            ("en", ["Day", "Week", "Month", "Year", "Custom"])
+            ("zh-Hans", ["日", "周", "月", "工资周期", "年", "自定义"]),
+            ("ja", ["日", "週", "月", "給与期間", "年", "期間指定"]),
+            ("en", ["Day", "Week", "Month", "Pay period", "Year", "Custom"])
         ]
         for (locale, expectedTitles) in cases {
             let app = launch(locale: locale)
             app.tabBars.buttons.element(boundBy: 1).tap()
-            for (range, expectedTitle) in zip(["day", "week", "month", "year", "custom"], expectedTitles) {
+            for (range, expectedTitle) in zip(["day", "week", "month", "payPeriod", "year", "custom"], expectedTitles) {
                 let button = app.buttons["earnings.range.\(range)"]
                 XCTAssertTrue(button.waitForExistence(timeout: 2))
                 XCTAssertEqual(button.label, expectedTitle)
@@ -33,6 +33,19 @@ import XCTest
             }
             app.terminate()
         }
+    }
+
+    func testShiftEditorSupportsMultipleScheduledBreaks() {
+        let app = launch()
+        app.buttons["shift.add"].tap()
+
+        let addBreak = app.buttons["shift.break.add.scheduled"]
+        XCTAssertTrue(addBreak.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.descendants(matching: .any)["shift.break.scheduled.0"].exists)
+        for _ in 0..<4 where !addBreak.isHittable { app.swipeUp() }
+        XCTAssertTrue(addBreak.isHittable)
+        addBreak.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["shift.break.scheduled.1"].waitForExistence(timeout: 4))
     }
 
     func testCalendarDayOpensDetailAndUsesSingleDayEditor() {

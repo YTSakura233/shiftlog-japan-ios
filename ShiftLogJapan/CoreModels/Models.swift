@@ -25,6 +25,11 @@ enum TransportKind: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum PayPeriodKind: String, Codable, CaseIterable, Identifiable {
+    case monthly, weekly, biweekly
+    var id: String { rawValue }
+}
+
 @Model final class UserSettings {
     var id: UUID = UUID()
     var localeCode: String = "zh-Hans"
@@ -63,7 +68,14 @@ enum TransportKind: String, Codable, CaseIterable, Identifiable {
     var wageRoundingUnit: Int = 1
     var payClosingDay: Int = 31
     var payDay: Int = 25
+    var payPeriodKindRaw: String = PayPeriodKind.monthly.rawValue
+    var payWeekStartDay: Int = 2
+    var payWeekday: Int = 6
+    var payPeriodAnchor: Date = Date(timeIntervalSince1970: 0)
+    var payReminderEnabled: Bool = false
+    var payReminderDaysBefore: Int = 1
     var shiftReminderMinutes: Int = 60
+    var shiftEndReminderEnabled: Bool = true
     var calendarSyncEnabled: Bool = false
     var notes: String = ""
     var isActive: Bool = true
@@ -78,6 +90,7 @@ enum TransportKind: String, Codable, CaseIterable, Identifiable {
 
     var transportKind: TransportKind { TransportKind(rawValue: transportKindRaw) ?? .none }
     var roundingDirection: RoundingDirection { RoundingDirection(rawValue: roundingDirectionRaw) ?? .nearest }
+    var payPeriodKind: PayPeriodKind { PayPeriodKind(rawValue: payPeriodKindRaw) ?? .monthly }
 }
 
 @Model final class WageRate {
@@ -182,10 +195,17 @@ enum TransportKind: String, Codable, CaseIterable, Identifiable {
     var estimatedLabor: Decimal = 0
     var grossAmount: Decimal?
     var deductions: Decimal = 0
+    var incomeTax: Decimal = 0
+    var employmentInsurance: Decimal = 0
+    var healthInsurance: Decimal = 0
+    var pension: Decimal = 0
+    var residentTax: Decimal = 0
+    var otherDeductions: Decimal = 0
     var transportAmount: Decimal = 0
     var receivedAmount: Decimal?
     var receivedDate: Date?
     var notes: String = ""
+    var includedShiftIDsCSV: String = ""
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
 
@@ -193,5 +213,8 @@ enum TransportKind: String, Codable, CaseIterable, Identifiable {
         self.jobID = jobID
         self.periodStart = periodStart
         self.periodEnd = periodEnd
+    }
+    var includedShiftIDs: [UUID] {
+        includedShiftIDsCSV.split(separator: ",").compactMap { UUID(uuidString: String($0)) }
     }
 }

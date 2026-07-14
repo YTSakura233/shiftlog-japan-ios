@@ -64,6 +64,7 @@ struct JobEditorView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.locale) private var locale
     @Query private var rates: [WageRate]
     @Query private var rules: [PremiumRule]
     let job: Job?
@@ -83,7 +84,14 @@ struct JobEditorView: View {
     @State private var roundingDirection = RoundingDirection.nearest
     @State private var payClosingDay = 31
     @State private var payDay = 25
+    @State private var payPeriodKind = PayPeriodKind.monthly
+    @State private var payWeekStartDay = 2
+    @State private var payWeekday = 6
+    @State private var payPeriodAnchor = Date()
+    @State private var payReminderEnabled = false
+    @State private var payReminderDaysBefore = 1
     @State private var reminderMinutes = 60
+    @State private var shiftEndReminderEnabled = true
     @State private var calendarSync = false
     @State private var deepNightPremium = true
     @State private var notes = ""
@@ -111,7 +119,14 @@ struct JobEditorView: View {
         _roundingDirection = State(initialValue: job.roundingDirection)
         _payClosingDay = State(initialValue: job.payClosingDay)
         _payDay = State(initialValue: job.payDay)
+        _payPeriodKind = State(initialValue: job.payPeriodKind)
+        _payWeekStartDay = State(initialValue: job.payWeekStartDay)
+        _payWeekday = State(initialValue: job.payWeekday)
+        _payPeriodAnchor = State(initialValue: job.payPeriodAnchor.timeIntervalSince1970 == 0 ? Date() : job.payPeriodAnchor)
+        _payReminderEnabled = State(initialValue: job.payReminderEnabled)
+        _payReminderDaysBefore = State(initialValue: job.payReminderDaysBefore)
         _reminderMinutes = State(initialValue: job.shiftReminderMinutes)
+        _shiftEndReminderEnabled = State(initialValue: job.shiftEndReminderEnabled)
         _calendarSync = State(initialValue: job.calendarSyncEnabled)
         _notes = State(initialValue: job.notes)
         _isActive = State(initialValue: job.isActive)
@@ -187,11 +202,35 @@ struct JobEditorView: View {
                         }
                     }
                     Section("job.section.pay") {
-                        Stepper(value: $payClosingDay, in: 1...31) { LabeledContent("job.closingDay", value: "\(payClosingDay)") }
-                        Stepper(value: $payDay, in: 1...31) { LabeledContent("job.payDay", value: "\(payDay)") }
+                        Picker("pay.period.kind", selection: $payPeriodKind) {
+                            Text("pay.period.monthly").tag(PayPeriodKind.monthly)
+                            Text("pay.period.weekly").tag(PayPeriodKind.weekly)
+                            Text("pay.period.biweekly").tag(PayPeriodKind.biweekly)
+                        }
+                        if payPeriodKind == .monthly {
+                            Stepper(value: $payClosingDay, in: 1...31) { LabeledContent("job.closingDay", value: "\(payClosingDay)") }
+                            Stepper(value: $payDay, in: 1...31) { LabeledContent("job.payDay", value: "\(payDay)") }
+                        } else {
+                            Picker("pay.period.weekStart", selection: $payWeekStartDay) {
+                                ForEach(1...7, id: \.self) { Text(weekdayName($0)).tag($0) }
+                            }
+                            if payPeriodKind == .biweekly {
+                                DatePicker("pay.period.anchor", selection: $payPeriodAnchor, displayedComponents: .date)
+                            }
+                            Picker("job.payWeekday", selection: $payWeekday) {
+                                ForEach(1...7, id: \.self) { Text(weekdayName($0)).tag($0) }
+                            }
+                        }
+                        Toggle("job.payReminder", isOn: $payReminderEnabled)
+                        if payReminderEnabled {
+                            Stepper(value: $payReminderDaysBefore, in: 0...14) {
+                                LabeledContent("job.payReminder.advance", value: String(format: String(localized: "common.days"), payReminderDaysBefore))
+                            }
+                        }
                     }
                     Section("job.section.system") {
                         Stepper(value: $reminderMinutes, in: 0...1_440, step: 15) { LabeledContent("job.reminder", value: "\(reminderMinutes) min") }
+                        Toggle("job.shiftEndReminder", isOn: $shiftEndReminderEnabled)
                         Toggle("job.calendarSync", isOn: $calendarSync)
                     }
                     Section("shift.notes") { TextField("shift.notes.placeholder", text: $notes, axis: .vertical) }
@@ -231,6 +270,13 @@ struct JobEditorView: View {
     }
 
     private func issue(for fieldID: String) -> FormIssue? { issues.first { $0.fieldID == fieldID } }
+
+    private func weekdayName(_ weekday: Int) -> String {
+        var calendar = Calendar.current
+        calendar.locale = locale
+        let symbols = calendar.weekdaySymbols
+        return symbols[min(7, max(1, weekday)) - 1]
+    }
 
     private func clearResolvedIssues() {
         issues.removeAll { issue in
@@ -297,7 +343,14 @@ struct JobEditorView: View {
         target.roundingDirectionRaw = roundingDirection.rawValue
         target.payClosingDay = payClosingDay
         target.payDay = payDay
+        target.payPeriodKindRaw = payPeriodKind.rawValue
+        target.payWeekStartDay = payWeekStartDay
+        target.payWeekday = payWeekday
+        target.payPeriodAnchor = payPeriodAnchor
+        target.payReminderEnabled = payReminderEnabled
+        target.payReminderDaysBefore = payReminderDaysBefore
         target.shiftReminderMinutes = reminderMinutes
+        target.shiftEndReminderEnabled = shiftEndReminderEnabled
         target.calendarSyncEnabled = calendarSync
         target.notes = notes
         target.isActive = isActive
@@ -325,7 +378,34 @@ struct JobEditorView: View {
         } else {
             deepNight?.effectiveTo = Date()
         }
-        do { try context.save(); dismiss() }
+        do {
+            try context.save()
+            schedulePayReminder(for: target)
+            dismiss()
+        }
         catch { present([FormIssue("save.failed", message: String(format: String(localized: "error.save.failed"), error.localizedDescription))]) }
+    }
+
+    private func schedulePayReminder(for job: Job) {
+        var period = PayPeriodEngine.period(
+            containing: Date(), kind: job.payPeriodKind,
+            closingDay: job.payClosingDay, payDay: job.payDay,
+            weekStartDay: job.payWeekStartDay, anchor: job.payPeriodAnchor,
+            payWeekday: job.payWeekday
+        )
+        if period.payDate <= Date() {
+            period = PayPeriodEngine.period(
+                containing: period.end.addingTimeInterval(1), kind: job.payPeriodKind,
+                closingDay: job.payClosingDay, payDay: job.payDay,
+                weekStartDay: job.payWeekStartDay, anchor: job.payPeriodAnchor,
+                payWeekday: job.payWeekday
+            )
+        }
+        Task {
+            await NotificationService.shared.schedulePayReminder(
+                jobID: job.id, payDate: period.payDate, jobName: job.displayName,
+                daysBefore: job.payReminderDaysBefore, enabled: job.payReminderEnabled
+            )
+        }
     }
 }

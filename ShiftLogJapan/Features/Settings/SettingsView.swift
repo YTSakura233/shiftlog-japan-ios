@@ -113,12 +113,28 @@ struct SettingsView: View {
         try saveAutomaticBackup(currentData)
         deleteAll()
         payload.settings.forEach { r in let m = UserSettings(); m.id = r.id; m.localeCode = r.localeCode; m.weekStartDay = r.weekStartDay; m.workLimitEnabled = r.workLimitEnabled; m.weeklyLimitMinutes = r.weeklyLimitMinutes; m.rollingSevenDayCheckEnabled = r.rollingSevenDayCheckEnabled; m.cautionMinutes = r.cautionMinutes; m.warningMinutes = r.warningMinutes; m.disclaimerAcceptedAt = r.disclaimerAcceptedAt; m.onboardingCompleted = r.onboardingCompleted; context.insert(m) }
-        payload.jobs.forEach { r in let m = Job(displayName: r.displayName, colorHex: r.colorHex); m.id = r.id; m.employerName = r.employerName; m.locationName = r.locationName; m.address = r.address; m.prefectureCode = r.prefectureCode; m.defaultStartHour = r.defaultStartHour; m.defaultStartMinute = r.defaultStartMinute; m.defaultEndHour = r.defaultEndHour; m.defaultEndMinute = r.defaultEndMinute; m.defaultBreakMinutes = r.defaultBreakMinutes; m.transportKindRaw = r.transportKindRaw; m.transportAmount = r.transportAmount; m.roundingIntervalMinutes = r.roundingIntervalMinutes; m.roundingDirectionRaw = r.roundingDirectionRaw; m.wageRoundingUnit = r.wageRoundingUnit; m.payClosingDay = r.payClosingDay; m.payDay = r.payDay; m.shiftReminderMinutes = r.shiftReminderMinutes; m.calendarSyncEnabled = r.calendarSyncEnabled; m.notes = r.notes; m.isActive = r.isActive; m.createdAt = r.createdAt; m.updatedAt = r.updatedAt; context.insert(m) }
+        payload.jobs.forEach { r in
+            let m = Job(displayName: r.displayName, colorHex: r.colorHex)
+            m.id = r.id; m.employerName = r.employerName; m.locationName = r.locationName; m.address = r.address; m.prefectureCode = r.prefectureCode
+            m.defaultStartHour = r.defaultStartHour; m.defaultStartMinute = r.defaultStartMinute; m.defaultEndHour = r.defaultEndHour; m.defaultEndMinute = r.defaultEndMinute; m.defaultBreakMinutes = r.defaultBreakMinutes
+            m.transportKindRaw = r.transportKindRaw; m.transportAmount = r.transportAmount; m.roundingIntervalMinutes = r.roundingIntervalMinutes; m.roundingDirectionRaw = r.roundingDirectionRaw; m.wageRoundingUnit = r.wageRoundingUnit
+            m.payClosingDay = r.payClosingDay; m.payDay = r.payDay; m.shiftReminderMinutes = r.shiftReminderMinutes; m.calendarSyncEnabled = r.calendarSyncEnabled
+            m.payPeriodKindRaw = r.payPeriodKindRaw ?? PayPeriodKind.monthly.rawValue; m.payWeekStartDay = r.payWeekStartDay ?? 2; m.payWeekday = r.payWeekday ?? 6; m.payPeriodAnchor = r.payPeriodAnchor ?? Date()
+            m.payReminderEnabled = r.payReminderEnabled ?? false; m.payReminderDaysBefore = r.payReminderDaysBefore ?? 1; m.shiftEndReminderEnabled = r.shiftEndReminderEnabled ?? true
+            m.notes = r.notes; m.isActive = r.isActive; m.createdAt = r.createdAt; m.updatedAt = r.updatedAt
+            context.insert(m)
+        }
         payload.rates.forEach { r in let m = WageRate(jobID: r.jobID, hourlyAmount: r.hourlyAmount, effectiveFrom: r.effectiveFrom); m.id = r.id; m.effectiveTo = r.effectiveTo; context.insert(m) }
         payload.premiumRules.forEach { r in let m = PremiumRule(jobID: r.jobID, name: r.name, percentage: r.percentage); m.id = r.id; m.kindRaw = r.kindRaw; m.startMinutesFromMidnight = r.startMinutesFromMidnight; m.endMinutesFromMidnight = r.endMinutesFromMidnight; m.weekdaysCSV = r.weekdaysCSV; m.specificDate = r.specificDate; m.fixedHourlyAmount = r.fixedHourlyAmount; m.fixedShiftAmount = r.fixedShiftAmount; m.stackable = r.stackable; m.priority = r.priority; m.effectiveFrom = r.effectiveFrom; m.effectiveTo = r.effectiveTo; m.enabled = r.enabled; context.insert(m) }
         payload.shifts.forEach { r in let m = Shift(jobID: r.jobID, scheduledStart: r.scheduledStart, scheduledEnd: r.scheduledEnd); m.id = r.id; m.statusRaw = r.statusRaw; m.actualStart = r.actualStart; m.actualEnd = r.actualEnd; m.actualConfirmed = r.actualConfirmed; m.transportAmount = r.transportAmount; m.bonusAmount = r.bonusAmount; m.deductionAmount = r.deductionAmount; m.notes = r.notes; m.recurrenceSeriesID = r.recurrenceSeriesID; m.timeZoneIdentifier = r.timeZoneIdentifier; m.snapshotHourlyRate = r.snapshotHourlyRate; m.snapshotBaseWage = r.snapshotBaseWage; m.snapshotPremiumWage = r.snapshotPremiumWage; m.snapshotTotal = r.snapshotTotal; m.createdAt = r.createdAt; m.updatedAt = r.updatedAt; m.isDeleted = r.isDeleted; context.insert(m) }
         payload.breaks.forEach { r in let m = ShiftBreak(shiftID: r.shiftID, isActual: r.isActual, start: r.start, end: r.end); m.id = r.id; context.insert(m) }
-        payload.payments.forEach { r in let m = Payment(jobID: r.jobID, periodStart: r.periodStart, periodEnd: r.periodEnd); m.id = r.id; m.estimatedLabor = r.estimatedLabor; m.grossAmount = r.grossAmount; m.deductions = r.deductions; m.transportAmount = r.transportAmount; m.receivedAmount = r.receivedAmount; m.receivedDate = r.receivedDate; m.notes = r.notes; context.insert(m) }
+        payload.payments.forEach { r in
+            let m = Payment(jobID: r.jobID, periodStart: r.periodStart, periodEnd: r.periodEnd)
+            m.id = r.id; m.estimatedLabor = r.estimatedLabor; m.grossAmount = r.grossAmount; m.deductions = r.deductions; m.transportAmount = r.transportAmount
+            m.incomeTax = r.incomeTax ?? 0; m.employmentInsurance = r.employmentInsurance ?? 0; m.healthInsurance = r.healthInsurance ?? 0; m.pension = r.pension ?? 0; m.residentTax = r.residentTax ?? 0; m.otherDeductions = r.otherDeductions ?? r.deductions
+            m.receivedAmount = r.receivedAmount; m.receivedDate = r.receivedDate; m.notes = r.notes; m.includedShiftIDsCSV = r.includedShiftIDsCSV ?? ""
+            context.insert(m)
+        }
         try context.save()
     }
 

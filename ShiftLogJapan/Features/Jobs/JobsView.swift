@@ -400,9 +400,10 @@ struct JobEditorView: View {
         target.updatedAt = Date()
 
         let current = rates.filter { $0.jobID == target.id && $0.effectiveTo == nil }.sorted { $0.effectiveFrom > $1.effectiveFrom }.first
-        if current?.hourlyAmount != hourlyAmount {
-            current?.effectiveTo = Date()
-            context.insert(WageRate(jobID: target.id, hourlyAmount: hourlyAmount, effectiveFrom: Date()))
+        if let current, current.hourlyAmount != hourlyAmount {
+            let effectiveFrom = Date()
+            current.effectiveTo = effectiveFrom
+            context.insert(WageRate(jobID: target.id, hourlyAmount: hourlyAmount, effectiveFrom: effectiveFrom))
         } else if current == nil {
             context.insert(WageRate(jobID: target.id, hourlyAmount: hourlyAmount))
         }

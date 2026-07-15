@@ -17,6 +17,10 @@ struct ShiftEditorView: View {
         static let errorSummary = "shift.form.errorSummary"
     }
 
+    private enum ConfirmationKind {
+        case overnight, saveSeries, deleteSeries
+    }
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Environment(\.locale) private var locale
@@ -46,12 +50,12 @@ struct ShiftEditorView: View {
     @State private var issues: [FormIssue] = []
     @State private var conflictShift: Shift?
     @State private var riskMessage: String?
-    @State private var showingDelete = false
-    @State private var showingSeriesSaveScope = false
-    @State private var showingSeriesDeleteScope = false
     @State private var showingCopy = false
     @State private var viewingConflict: Shift?
-    @State private var showingOvernightSuggestion = false
+    @State private var confirmationKind: ConfirmationKind?
+    @State private var showingConfirmation = false
+    @State private var showingDeleteAlert = false
+    @State private var schedulePickerRevision = 0
     @State private var syncingDates = false
     @State private var isHydrating = true
     @State private var didHydrate = false
@@ -102,7 +106,12 @@ struct ShiftEditorView: View {
     private var editorObservedSchedule: some View {
         editorChrome
             .onChange(of: crossDayEnabled) { _, enabled in handleCrossDayChange(enabled) }
-            .onChange(of: jobID) { _, _ in clearResolvedIssues() }
+            .onChange(of: jobID) { oldValue, newValue in
+                clearResolvedIssues()
+                guard oldValue != newValue, !isHydrating, shift == nil,
+                      let newValue, let job = jobs.first(where: { $0.id == newValue }) else { return }
+                applyJobDefaults(job)
+            }
             .onChange(of: status) { _, _ in clearResolvedIssues() }
             .onChange(of: scheduledBreakDrafts) { _, _ in clearResolvedIssues() }
     }
@@ -121,41 +130,59 @@ struct ShiftEditorView: View {
                 Button("common.back", role: .cancel) { riskMessage = nil }
                 Button("risk.saveAnyway") { riskMessage = nil; requestPersist() }
             } message: { Text(riskMessage ?? "") }
-            .confirmationDialog("shift.overnight.suggestion", isPresented: $showingOvernightSuggestion, titleVisibility: .visible) {
-                Button("shift.overnight.setNextDay") {
-                    syncingDates = true
-                    crossDayEnabled = true
-                    end = ShiftDateLinker.promoteEndToNextDay(start: start, end: end)
-                    syncingDates = false
-                    clearResolvedIssues()
-                }
-                Button("shift.overnight.keepSameDay", role: .cancel) {}
+            .confirmationDialog(confirmationTitle, isPresented: $showingConfirmation, titleVisibility: .visible) {
+                confirmationActions
             }
-            .confirmationDialog("shift.delete.confirm", isPresented: $showingDelete, titleVisibility: .visible) {
-                Button("common.delete", role: .destructive) { deleteShift(scope: .thisOccurrence) }
-            }
-    }
-
-    private var editorSeriesDialogs: some View {
-        editorAlerts
-            .confirmationDialog("shift.series.edit.title", isPresented: $showingSeriesSaveScope, titleVisibility: .visible) {
-                Button("shift.series.this") { persist(scope: .thisOccurrence) }
-                Button("shift.series.future") { persist(scope: .thisAndFuture) }
-                Button("shift.series.all") { persist(scope: .entireSeries) }
-                Button("common.cancel", role: .cancel) {}
-            }
-            .confirmationDialog("shift.series.delete.title", isPresented: $showingSeriesDeleteScope, titleVisibility: .visible) {
-                Button("shift.series.this", role: .destructive) { deleteShift(scope: .thisOccurrence) }
-                Button("shift.series.future", role: .destructive) { deleteShift(scope: .thisAndFuture) }
-                Button("shift.series.all", role: .destructive) { deleteShift(scope: .entireSeries) }
-                Button("common.cancel", role: .cancel) {}
+            .onChange(of: showingConfirmation) { wasShowing, isShowing in
+                if wasShowing, !isShowing, confirmationKind == .overnight { resetSchedulePickers() }
             }
     }
 
     private var editorPresented: some View {
-        editorSeriesDialogs
+        editorAlerts
             .sheet(isPresented: $showingCopy) { ShiftEditorView(shift: shift, copying: true) }
             .sheet(item: $viewingConflict) { ShiftEditorView(shift: $0) }
+    }
+
+    private var confirmationTitle: LocalizedStringKey {
+        switch confirmationKind {
+        case .overnight: "shift.overnight.suggestion"
+        case .saveSeries: "shift.series.edit.title"
+        case .deleteSeries: "shift.series.delete.title"
+        case nil: "common.notice"
+        }
+    }
+
+    @ViewBuilder private var confirmationActions: some View {
+        switch confirmationKind {
+        case .overnight:
+            Button("shift.overnight.setNextDay") {
+                syncingDates = true
+                crossDayEnabled = true
+                end = ShiftDateLinker.promoteEndToNextDay(start: start, end: end)
+                syncingDates = false
+                resetSchedulePickers()
+                clearResolvedIssues()
+            }
+            Button("shift.overnight.keepSameDay", role: .cancel) { resetSchedulePickers() }
+        case .saveSeries:
+            Button("shift.series.this") { persist(scope: .thisOccurrence) }
+            Button("shift.series.future") { persist(scope: .thisAndFuture) }
+            Button("shift.series.all") { persist(scope: .entireSeries) }
+            Button("common.cancel", role: .cancel) {}
+        case .deleteSeries:
+            Button("shift.series.this", role: .destructive) { deleteShift(scope: .thisOccurrence) }
+            Button("shift.series.future", role: .destructive) { deleteShift(scope: .thisAndFuture) }
+            Button("shift.series.all", role: .destructive) { deleteShift(scope: .entireSeries) }
+            Button("common.cancel", role: .cancel) {}
+        case nil:
+            EmptyView()
+        }
+    }
+
+    private func presentConfirmation(_ kind: ConfirmationKind) {
+        confirmationKind = kind
+        showingConfirmation = true
     }
 
     private var editorScrollContainer: some View {
@@ -189,6 +216,12 @@ struct ShiftEditorView: View {
                 Section {
                     Button { showingCopy = true } label: { Label("common.copy", systemImage: "doc.on.doc") }
                     Button("common.delete", role: .destructive) { requestDelete() }
+                        .accessibilityIdentifier("shift.delete")
+                        .alert("shift.delete.confirm", isPresented: $showingDeleteAlert) {
+                            Button("common.delete", role: .destructive) { deleteShift(scope: .thisOccurrence) }
+                                .accessibilityIdentifier("shift.delete.confirmAction")
+                            Button("common.cancel", role: .cancel) {}
+                        }
                 }
             }
         }
@@ -224,8 +257,10 @@ struct ShiftEditorView: View {
             Toggle("shift.crossDay", isOn: $crossDayEnabled)
                 .accessibilityIdentifier("shift.crossDay")
             DatePicker("shift.start", selection: linkedStart)
+                .id("shift.start.\(schedulePickerRevision)")
                 .accessibilityIdentifier("shift.start")
             DatePicker("shift.end", selection: linkedEnd)
+                .id("shift.end.\(schedulePickerRevision)")
                 .accessibilityIdentifier("shift.end")
             if let issue = issue(for: FieldID.schedule) {
                 InlineFieldError(message: issue.message)
@@ -481,11 +516,7 @@ struct ShiftEditorView: View {
         syncingDates = true
         if jobID == nil, let first = jobs.first(where: \.isActive) {
             jobID = first.id
-            start = Calendar.current.date(bySettingHour: first.defaultStartHour, minute: first.defaultStartMinute, second: 0, of: start) ?? start
-            end = Calendar.current.date(bySettingHour: first.defaultEndHour, minute: first.defaultEndMinute, second: 0, of: start) ?? end
-            end = ShiftDateLinker.replacingDay(of: end, with: start)
-            scheduledBreakDrafts = defaultBreakDrafts(start: start, end: end, minutes: first.defaultBreakMinutes)
-            transportAmount = NSDecimalNumber(decimal: first.transportKind == .perShift ? first.transportAmount : 0).intValue
+            applyJobDefaults(first)
         }
         if let shift {
             scheduledBreakDrafts = breakDrafts(shiftID: shift.id, actual: false)
@@ -512,7 +543,35 @@ struct ShiftEditorView: View {
     }
 
     private func offerOvernightIfNeeded() {
-        if !crossDayEnabled, end <= start { showingOvernightSuggestion = true }
+        if !crossDayEnabled, end <= start, !showingConfirmation { presentConfirmation(.overnight) }
+    }
+
+    private func applyJobDefaults(_ job: Job) {
+        let wasSyncingDates = syncingDates
+        syncingDates = true
+        let range = ShiftDateLinker.defaultRange(
+            for: start,
+            startHour: job.defaultStartHour,
+            startMinute: job.defaultStartMinute,
+            endHour: job.defaultEndHour,
+            endMinute: job.defaultEndMinute
+        )
+        start = range.start
+        end = range.end
+        crossDayEnabled = !Calendar.current.isDate(range.start, inSameDayAs: range.end)
+        scheduledBreakDrafts = defaultBreakDrafts(start: start, end: end, minutes: job.defaultBreakMinutes)
+        transportAmount = NSDecimalNumber(decimal: job.transportKind == .perShift ? job.transportAmount : 0).intValue
+        if !actualConfirmed {
+            actualStart = start
+            actualEnd = end
+            actualBreakDrafts = scheduledBreakDrafts
+        }
+        syncingDates = wasSyncingDates
+        resetSchedulePickers()
+    }
+
+    private func resetSchedulePickers() {
+        schedulePickerRevision += 1
     }
 
     private func clearResolvedIssues() {
@@ -585,7 +644,7 @@ struct ShiftEditorView: View {
     }
 
     private func requestPersist() {
-        if shift?.recurrenceSeriesID != nil { showingSeriesSaveScope = true }
+        if shift?.recurrenceSeriesID != nil { presentConfirmation(.saveSeries) }
         else { persist(scope: .thisOccurrence) }
     }
 
@@ -781,8 +840,8 @@ struct ShiftEditorView: View {
     }
 
     private func requestDelete() {
-        if shift?.recurrenceSeriesID != nil { showingSeriesDeleteScope = true }
-        else { showingDelete = true }
+        if shift?.recurrenceSeriesID != nil { presentConfirmation(.deleteSeries) }
+        else { showingDeleteAlert = true }
     }
 
     private func deleteShift(scope: RecurrenceEditScope) {
@@ -797,11 +856,12 @@ struct ShiftEditorView: View {
             targets = [shift]
         }
         for target in targets {
-            target.isDeleted = true
-            target.updatedAt = Date()
-            allBreaks.filter { $0.shiftID == target.id }.forEach(context.delete)
-            Task { await NotificationService.shared.cancelShiftReminder(shiftID: target.id) }
-            if let eventID = target.calendarEventID { try? CalendarService.shared.delete(eventIdentifier: eventID) }
+            let targetID = target.id
+            let eventID = target.calendarEventID
+            allBreaks.filter { $0.shiftID == targetID }.forEach(context.delete)
+            Task { await NotificationService.shared.cancelShiftReminder(shiftID: targetID) }
+            if let eventID { try? CalendarService.shared.delete(eventIdentifier: eventID) }
+            context.delete(target)
         }
         do { try context.save(); dismiss() }
         catch { present([FormIssue("delete.failed", message: String(format: String(localized: "error.save.failed"), error.localizedDescription))]) }

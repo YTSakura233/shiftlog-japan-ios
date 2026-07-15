@@ -52,6 +52,7 @@ struct CalendarDashboardView: View {
                     }
                 }.padding()
             }
+            .simultaneousGesture(periodSwipeGesture)
             .navigationTitle("app.name")
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("calendar.today") { selectedDate = Date() } } }
             .sheet(item: $editingShift) { ShiftEditorView(shift: $0) }
@@ -90,7 +91,18 @@ struct CalendarDashboardView: View {
         HStack {
             Button { move(-1) } label: { Image(systemName: "chevron.left") }
             Spacer()
-            Text(periodTitle).font(.title3.bold())
+            VStack(spacing: 3) {
+                Text(periodHeading.title)
+                    .font(.title3.bold())
+                    .accessibilityIdentifier("calendar.period.title")
+                if let subtitle = periodHeading.subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("calendar.period.subtitle")
+                }
+            }
             Spacer()
             Button { move(1) } label: { Image(systemName: "chevron.right") }
         }.buttonStyle(.bordered)
@@ -117,9 +129,14 @@ struct CalendarDashboardView: View {
     @ViewBuilder private func daySection(_ date: Date, shifts: [Shift]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(date, format: .dateTime.weekday(.wide).month().day()).font(.headline)
-            if shifts.isEmpty { ContentUnavailableView("calendar.empty.day", systemImage: "calendar") }
+            if shifts.isEmpty {
+                ContentUnavailableView("calendar.empty.day", systemImage: "calendar")
+                    .accessibilityIdentifier("calendar.day.empty")
+            }
             ForEach(shifts) { shift in
-                Button { editingShift = shift } label: { ShiftRow(shift: shift, job: job(shift.jobID), breaks: breaks.filter { $0.shiftID == shift.id }) }.buttonStyle(.plain)
+                Button { editingShift = shift } label: { ShiftRow(shift: shift, job: job(shift.jobID), breaks: breaks.filter { $0.shiftID == shift.id }) }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("calendar.day.shift")
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -149,14 +166,32 @@ struct CalendarDashboardView: View {
     }
 
     private func job(_ id: UUID) -> Job? { jobs.first { $0.id == id } }
-    private var periodTitle: String {
+    private var periodHeading: PeriodHeading {
         switch display {
-        case .year: selectedDate.formatted(.dateTime.year())
-        case .month: selectedDate.formatted(.dateTime.year().month(.wide))
-        case .week: selectedDate.formatted(.dateTime.month().day())
-        case .day: selectedDate.formatted(.dateTime.year().month().day())
+        case .year:
+            PeriodHeadingFormatter.year(selectedDate, locale: locale)
+        case .month:
+            PeriodHeadingFormatter.month(selectedDate, locale: locale)
+        case .week:
+            PeriodHeadingFormatter.week(
+                containing: selectedDate,
+                interval: Calendar.current.dateInterval(of: .weekOfYear, for: selectedDate)!,
+                locale: locale
+            )
+        case .day:
+            PeriodHeadingFormatter.day(selectedDate, locale: locale)
         }
     }
+
+    private var periodSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                let horizontal = value.translation.width
+                guard abs(horizontal) > abs(value.translation.height), abs(horizontal) >= 50 else { return }
+                withAnimation(.easeInOut(duration: 0.2)) { move(horizontal < 0 ? 1 : -1) }
+            }
+    }
+
     private func move(_ amount: Int) {
         let component: Calendar.Component = switch display { case .year: .year; case .month: .month; case .week: .weekOfYear; case .day: .day }
         selectedDate = Calendar.current.date(byAdding: component, value: amount, to: selectedDate) ?? selectedDate
@@ -303,11 +338,14 @@ struct DayDetailView: View {
                 Section("calendar.day.shifts") {
                     if dayShifts.isEmpty {
                         ContentUnavailableView("calendar.empty.day", systemImage: "calendar")
+                            .accessibilityIdentifier("calendar.day.empty")
                     }
                     ForEach(dayShifts) { shift in
                         Button { editingShift = shift } label: {
                             ShiftRow(shift: shift, job: jobs.first { $0.id == shift.jobID }, breaks: breaks.filter { $0.shiftID == shift.id })
-                        }.buttonStyle(.plain)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("calendar.day.shift")
                     }
                 }
                 Section {

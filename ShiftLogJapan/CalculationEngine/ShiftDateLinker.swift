@@ -1,10 +1,21 @@
 import Foundation
 
 enum ShiftDateLinker {
-    static func defaultRange(for day: Date, startHour: Int = 9, endHour: Int = 17, calendar: Calendar = .current) -> (start: Date, end: Date) {
-        let start = calendar.date(bySettingHour: startHour, minute: 0, second: 0, of: day) ?? day
-        let end = calendar.date(bySettingHour: endHour, minute: 0, second: 0, of: day) ?? start.addingTimeInterval(8 * 3_600)
-        return (start, replacingDay(of: end, with: start, calendar: calendar))
+    static func defaultRange(
+        for day: Date,
+        startHour: Int = 9,
+        startMinute: Int = 0,
+        endHour: Int = 17,
+        endMinute: Int = 0,
+        calendar: Calendar = .current
+    ) -> (start: Date, end: Date) {
+        let start = calendar.date(bySettingHour: startHour, minute: startMinute, second: 0, of: day) ?? day
+        let sameDayEnd = calendar.date(bySettingHour: endHour, minute: endMinute, second: 0, of: day)
+            ?? start.addingTimeInterval(8 * 3_600)
+        let end = sameDayEnd <= start
+            ? calendar.date(byAdding: .day, value: 1, to: sameDayEnd) ?? sameDayEnd
+            : sameDayEnd
+        return (start, end)
     }
 
     static func replacingDay(of value: Date, with day: Date, calendar: Calendar = .current) -> Date {

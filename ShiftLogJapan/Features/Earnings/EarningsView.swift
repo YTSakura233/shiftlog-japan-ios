@@ -100,6 +100,21 @@ struct EarningsView: View {
         }
     }
 
+    private var periodHeading: PeriodHeading {
+        switch range {
+        case .day:
+            PeriodHeadingFormatter.day(anchor, locale: locale)
+        case .week:
+            PeriodHeadingFormatter.week(containing: anchor, interval: interval, locale: locale)
+        case .month, .payPeriod:
+            PeriodHeadingFormatter.month(anchor, locale: locale)
+        case .year:
+            PeriodHeadingFormatter.year(anchor, locale: locale)
+        case .custom:
+            PeriodHeading(title: "", subtitle: nil)
+        }
+    }
+
     var body: some View {
         Group {
             if settings.first?.biometricLockEnabled == true && !sensitiveContentUnlocked {
@@ -156,7 +171,25 @@ struct EarningsView: View {
                 DatePicker("range.start", selection: $customStart, displayedComponents: .date)
                 DatePicker("range.end", selection: $customEnd, in: customStart..., displayedComponents: .date)
             } else {
-                HStack { Button { move(-1) } label: { Image(systemName: "chevron.left") }; Spacer(); Text(interval.start.formatted(date: .abbreviated, time: .omitted)).font(.headline); Spacer(); Button { move(1) } label: { Image(systemName: "chevron.right") } }.buttonStyle(.bordered)
+                HStack {
+                    Button { move(-1) } label: { Image(systemName: "chevron.left") }
+                    Spacer()
+                    VStack(spacing: 3) {
+                        Text(periodHeading.title)
+                            .font(.headline)
+                            .accessibilityIdentifier("earnings.period.title")
+                        if let subtitle = periodHeading.subtitle {
+                            Text(subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .accessibilityIdentifier("earnings.period.subtitle")
+                        }
+                    }
+                    Spacer()
+                    Button { move(1) } label: { Image(systemName: "chevron.right") }
+                }
+                .buttonStyle(.bordered)
             }
             Picker("earnings.source", selection: $source) {
                 ForEach(TimeSource.allCases) { Text($0.localizedTitle(locale: locale)).tag($0) }

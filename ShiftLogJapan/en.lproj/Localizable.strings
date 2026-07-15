@@ -51,6 +51,8 @@
 "error.job.wage.positive" = "The hourly wage must be greater than zero.";
 "error.job.wage.invalid" = "Enter a whole-yen amount. Grouping separators are allowed.";
 "range.payPeriod" = "Pay period";
+"period.week.title" = "Week %2$@ of %1$@";
+"period.range" = "(%1$@ – %2$@)";
 "shift.break.number" = "Break %d";
 "shift.break.start" = "Break starts";
 "shift.break.end" = "Break ends";

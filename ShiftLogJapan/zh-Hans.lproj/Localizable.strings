@@ -57,6 +57,8 @@
 "error.job.wage.positive" = "时薪必须大于 0。";
 "error.job.wage.invalid" = "请输入整数日元金额，可包含千位分隔符。";
 "range.payPeriod" = "工资周期";
+"period.week.title" = "%1$@第%2$@周";
+"period.range" = "（%1$@～%2$@）";
 "shift.break.number" = "休息 %d";
 "shift.break.start" = "休息开始";
 "shift.break.end" = "休息结束";

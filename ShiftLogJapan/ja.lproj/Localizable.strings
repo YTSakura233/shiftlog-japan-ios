@@ -48,6 +48,8 @@
 "error.job.wage.positive" = "時給は0円より大きい金額にしてください。";
 "error.job.wage.invalid" = "整数の円金額を入力してください。桁区切りも使用できます。";
 "range.payPeriod" = "給与期間";
+"period.week.title" = "%1$@第%2$@週";
+"period.range" = "（%1$@～%2$@）";
 "shift.break.number" = "休憩 %d";
 "shift.break.start" = "休憩開始";
 "shift.break.end" = "休憩終了";

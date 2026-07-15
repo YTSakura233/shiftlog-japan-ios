@@ -108,6 +108,61 @@ import XCTest
         XCTAssertTrue(app.datePickers["shift.end"].exists)
     }
 
+    func testFloatingAddShiftButtonOnlyAppearsOnCalendarTab() {
+        let app = launch()
+        XCTAssertTrue(app.buttons["shift.add"].waitForExistence(timeout: 3))
+
+        app.tabBars.buttons.element(boundBy: 1).tap()
+        XCTAssertFalse(app.buttons["shift.add"].exists)
+        app.tabBars.buttons.element(boundBy: 2).tap()
+        XCTAssertFalse(app.buttons["shift.add"].exists)
+        app.tabBars.buttons.element(boundBy: 3).tap()
+        XCTAssertFalse(app.buttons["shift.add"].exists)
+
+        app.tabBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["shift.add"].waitForExistence(timeout: 2))
+    }
+
+    func testExistingShiftCanBeDeleted() {
+        let app = launch()
+        let dayView = app.segmentedControls.buttons["Day"]
+        XCTAssertTrue(dayView.waitForExistence(timeout: 3))
+        dayView.tap()
+
+        let shiftRow = app.buttons["calendar.day.shift"].firstMatch
+        XCTAssertTrue(shiftRow.waitForExistence(timeout: 3))
+        shiftRow.tap()
+
+        let deleteButton = app.buttons["shift.delete"]
+        for _ in 0..<8 where !deleteButton.isHittable { app.swipeUp() }
+        XCTAssertTrue(deleteButton.isHittable)
+        deleteButton.tap()
+        let deleteAlert = app.alerts["Delete this shift?"]
+        XCTAssertTrue(deleteAlert.waitForExistence(timeout: 2))
+        let confirmation = deleteAlert.buttons["shift.delete.confirmAction"].firstMatch
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 2))
+        confirmation.tap()
+
+        XCTAssertTrue(shiftRow.waitForNonExistence(timeout: 3))
+    }
+
+    func testCalendarPeriodsCanBeChangedByHorizontalSwipe() {
+        let app = launch()
+        let title = app.staticTexts["calendar.period.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 3))
+        let originalMonth = title.label
+        app.scrollViews.firstMatch.swipeLeft()
+        XCTAssertNotEqual(title.label, originalMonth)
+
+        let week = app.segmentedControls.buttons["Week"]
+        XCTAssertTrue(week.waitForExistence(timeout: 2))
+        week.tap()
+        XCTAssertTrue(app.staticTexts["calendar.period.subtitle"].waitForExistence(timeout: 2))
+        let originalWeek = title.label
+        app.scrollViews.firstMatch.swipeLeft()
+        XCTAssertNotEqual(title.label, originalWeek)
+    }
+
     func testEmptyAndAdjacentMonthDaysOpenDetails() throws {
         let app = launch()
         let calendar = Calendar.current

@@ -2,8 +2,18 @@ import Foundation
 
 enum ModelAdapters {
     static func wageRate(for jobID: UUID, on date: Date, rates: [WageRate]) -> Decimal {
-        rates.filter { $0.jobID == jobID && $0.effectiveFrom <= date && ($0.effectiveTo == nil || $0.effectiveTo! > date) }
-            .sorted { $0.effectiveFrom > $1.effectiveFrom }.first?.hourlyAmount ?? 0
+        let jobRates = rates.filter { $0.jobID == jobID }
+        if let effective = jobRates
+            .filter({ $0.effectiveFrom <= date && ($0.effectiveTo == nil || $0.effectiveTo! > date) })
+            .max(by: { $0.effectiveFrom < $1.effectiveFrom }) {
+            return effective.hourlyAmount
+        }
+        if let latestPrior = jobRates
+            .filter({ $0.effectiveFrom <= date })
+            .max(by: { $0.effectiveFrom < $1.effectiveFrom }) {
+            return latestPrior.hourlyAmount
+        }
+        return jobRates.min(by: { $0.effectiveFrom < $1.effectiveFrom })?.hourlyAmount ?? 0
     }
 
     static func premiumSpecs(for jobID: UUID, on date: Date, rules: [PremiumRule]) -> [PremiumSpec] {

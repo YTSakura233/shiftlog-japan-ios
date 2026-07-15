@@ -309,7 +309,7 @@
 				CODE_SIGN_ENTITLEMENTS = ShiftLogJapan/ShiftLogJapan.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 5935M2DQ8Z;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "在日工作助手";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
@@ -336,7 +336,7 @@
 				CODE_SIGN_ENTITLEMENTS = ShiftLogJapan/ShiftLogJapan.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 5935M2DQ8Z;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "在日工作助手";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";

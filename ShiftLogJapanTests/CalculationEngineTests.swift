@@ -212,6 +212,56 @@ final class CalculationEngineTests: XCTestCase {
         XCTAssertEqual(ModelAdapters.wageRate(for: jobID, on: date(2026, 7, 20, 9), rates: [old, current]), 1_350)
     }
 
+    func testWageHistoryFallsBackToEarliestRateForOlderImportedShift() {
+        let jobID = UUID()
+        let initialRate = WageRate(jobID: jobID, hourlyAmount: 1_350, effectiveFrom: date(2026, 7, 15, 0))
+
+        XCTAssertEqual(ModelAdapters.wageRate(for: jobID, on: date(2026, 7, 7, 9), rates: [initialRate]), 1_350)
+        XCTAssertEqual(ModelAdapters.wageRate(for: UUID(), on: date(2026, 7, 7, 9), rates: [initialRate]), 0)
+    }
+
+    func testWageHistoryUsesLatestPriorRateWhenHistoryContainsAGap() {
+        let jobID = UUID()
+        let first = WageRate(jobID: jobID, hourlyAmount: 1_100, effectiveFrom: date(2026, 1, 1, 0))
+        first.effectiveTo = date(2026, 4, 1, 0)
+        let second = WageRate(jobID: jobID, hourlyAmount: 1_200, effectiveFrom: date(2026, 4, 1, 0))
+        second.effectiveTo = date(2026, 7, 1, 0)
+        let future = WageRate(jobID: jobID, hourlyAmount: 1_300, effectiveFrom: date(2026, 9, 1, 0))
+
+        XCTAssertEqual(ModelAdapters.wageRate(for: jobID, on: date(2026, 8, 1, 9), rates: [future, first, second]), 1_200)
+    }
+
+    func testJobDefaultRangeSupportsDaytimeAndOvernightSchedules() {
+        let selectedDate = date(2026, 7, 20, 12)
+        let daytime = ShiftDateLinker.defaultRange(
+            for: selectedDate, startHour: 9, startMinute: 30, endHour: 18, endMinute: 15, calendar: calendar
+        )
+        XCTAssertEqual(daytime.start, date(2026, 7, 20, 9, 30))
+        XCTAssertEqual(daytime.end, date(2026, 7, 20, 18, 15))
+
+        let overnight = ShiftDateLinker.defaultRange(
+            for: selectedDate, startHour: 21, startMinute: 30, endHour: 2, endMinute: 15, calendar: calendar
+        )
+        XCTAssertEqual(overnight.start, date(2026, 7, 20, 21, 30))
+        XCTAssertEqual(overnight.end, date(2026, 7, 21, 2, 15))
+    }
+
+    func testChinesePeriodHeadingsMatchRequestedCalendarFormat() {
+        var chineseCalendar = calendar
+        chineseCalendar.firstWeekday = 1
+        let locale = Locale(identifier: "zh-Hans")
+        let anchor = date(2026, 7, 1, 12)
+        let interval = DateInterval(start: date(2026, 6, 28, 0), end: date(2026, 7, 5, 0))
+
+        XCTAssertEqual(PeriodHeadingFormatter.day(anchor, locale: locale).title, "2026年7月1日")
+        XCTAssertEqual(PeriodHeadingFormatter.month(anchor, locale: locale).title, "2026年7月")
+        XCTAssertEqual(PeriodHeadingFormatter.year(anchor, locale: locale).title, "2026年")
+        XCTAssertEqual(
+            PeriodHeadingFormatter.week(containing: anchor, interval: interval, locale: locale, calendar: chineseCalendar),
+            PeriodHeading(title: "2026年7月第一周", subtitle: "（2026年6月28日～2026年7月4日）")
+        )
+    }
+
     func testEarningsRangeTitlesNeverExposeLocalizationKeys() {
         XCTAssertEqual(Set(EarningsRange.allCases.map(\.rawValue)), Set(["day", "week", "month", "payPeriod", "year", "custom"]))
         XCTAssertTrue(EarningsRange.allCases.allSatisfy { !$0.localizedTitle.hasPrefix("range.") && !$0.localizedTitle.isEmpty })

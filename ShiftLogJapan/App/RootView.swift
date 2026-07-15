@@ -29,13 +29,15 @@ struct MainTabView: View {
             SettingsView().tabItem { Label("tab.me", systemImage: "person.crop.circle") }.tag(3)
         }
         .overlay(alignment: .bottomTrailing) {
-            Button { showingNewShift = true } label: {
-                Image(systemName: "plus").font(.title2.bold()).frame(width: 56, height: 56)
-                    .foregroundStyle(.white).background(Color.accentColor, in: Circle()).platformGlass().shadow(radius: 8, y: 4)
+            if selectedTab == 0 {
+                Button { showingNewShift = true } label: {
+                    Image(systemName: "plus").font(.title2.bold()).frame(width: 56, height: 56)
+                        .foregroundStyle(.white).background(Color.accentColor, in: Circle()).platformGlass().shadow(radius: 8, y: 4)
+                }
+                .accessibilityLabel("shift.add")
+                .accessibilityIdentifier("shift.add")
+                .padding(.trailing, 20).padding(.bottom, 64)
             }
-            .accessibilityLabel("shift.add")
-            .accessibilityIdentifier("shift.add")
-            .padding(.trailing, 20).padding(.bottom, 64)
         }
         .sheet(isPresented: $showingNewShift) { ShiftEditorView() }
     }

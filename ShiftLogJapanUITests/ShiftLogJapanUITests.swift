@@ -149,6 +149,32 @@ import XCTest
         app.navigationBars.buttons["Save"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["form.error.summary"].waitForExistence(timeout: 2))
     }
+
+    func testP1LocalToolsAreReachableFromSettings() {
+        let app = launch(locale: "zh-Hans")
+        app.tabBars.buttons.element(boundBy: 3).tap()
+
+        let credentials = app.buttons["证件与许可提醒"]
+        for _ in 0..<6 where !credentials.isHittable { app.swipeUp() }
+        XCTAssertTrue(credentials.waitForExistence(timeout: 3))
+        let documents = app.buttons["工资与工作资料"]
+        XCTAssertTrue(documents.exists)
+        documents.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["工资单"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["document.type.payslip"].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        XCTAssertTrue(credentials.waitForExistence(timeout: 3))
+        credentials.tap()
+        XCTAssertTrue(app.buttons["新增提醒"].waitForExistence(timeout: 3))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        let help = app.buttons["需要帮助"]
+        XCTAssertTrue(help.waitForExistence(timeout: 3))
+        help.tap()
+        XCTAssertTrue(app.staticTexts["官方信息入口"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["工资单常见词汇"].exists)
+    }
 }
 
 private func calendarDayID(_ date: Date) -> String {

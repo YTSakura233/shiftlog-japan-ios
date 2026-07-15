@@ -67,12 +67,14 @@ struct JobEditorView: View {
     @Environment(\.locale) private var locale
     @Query private var rates: [WageRate]
     @Query private var rules: [PremiumRule]
+    @Query private var documents: [EmploymentDocument]
     let job: Job?
 
     @State private var name = ""
     @State private var employer = ""
     @State private var location = ""
     @State private var address = ""
+    @State private var prefectureCode = ""
     @State private var colorHex = AppTheme.palette[0]
     @State private var hourlyText = "1,200"
     @State private var startHour = 9
@@ -109,6 +111,7 @@ struct JobEditorView: View {
         _employer = State(initialValue: job.employerName)
         _location = State(initialValue: job.locationName)
         _address = State(initialValue: job.address)
+        _prefectureCode = State(initialValue: job.prefectureCode)
         _colorHex = State(initialValue: job.colorHex)
         _startHour = State(initialValue: job.defaultStartHour)
         _endHour = State(initialValue: job.defaultEndHour)
@@ -150,6 +153,12 @@ struct JobEditorView: View {
                         TextField("job.employer", text: $employer)
                         TextField("job.location", text: $location)
                         TextField("job.address", text: $address)
+                        Picker("job.prefecture", selection: $prefectureCode) {
+                            Text("common.choose").tag("")
+                            ForEach(MinimumWageCatalog.prefectures) { prefecture in
+                                Text(prefecture.localizedName(locale: locale)).tag(prefecture.code)
+                            }
+                        }
                         HStack {
                             ForEach(AppTheme.palette, id: \.self) { hex in
                                 Button { colorHex = hex } label: {
@@ -174,6 +183,7 @@ struct JobEditorView: View {
                             Text("job.hourly.unit").foregroundStyle(.secondary)
                         }
                         if let issue = issue(for: FieldID.wage) { InlineFieldError(message: issue.message) }
+                        minimumWageNotice
                         Toggle("job.deepNight", isOn: $deepNightPremium)
                         Picker("job.rounding.interval", selection: $roundingInterval) {
                             Text("1 min").tag(1); Text("5 min").tag(5); Text("10 min").tag(10); Text("15 min").tag(15); Text("30 min").tag(30)
@@ -232,6 +242,13 @@ struct JobEditorView: View {
                         Stepper(value: $reminderMinutes, in: 0...1_440, step: 15) { LabeledContent("job.reminder", value: "\(reminderMinutes) min") }
                         Toggle("job.shiftEndReminder", isOn: $shiftEndReminderEnabled)
                         Toggle("job.calendarSync", isOn: $calendarSync)
+                        if let job {
+                            NavigationLink {
+                                DocumentLibraryView(initialJobID: job.id)
+                            } label: {
+                                LabeledContent("document.library", value: "\(documents.filter { $0.jobID == job.id }.count)")
+                            }
+                        }
                     }
                     Section("shift.notes") { TextField("shift.notes.placeholder", text: $notes, axis: .vertical) }
                 }
@@ -326,6 +343,31 @@ struct JobEditorView: View {
         hourlyText = WageInputParser.formatJPY(amount)
     }
 
+    @ViewBuilder private var minimumWageNotice: some View {
+        if let amount = try? WageInputParser.parseJPY(hourlyText) {
+            switch MinimumWageCatalog().assess(prefectureCode: prefectureCode, hourlyAmount: amount, on: Date()) {
+            case .missingPrefecture:
+                Label("minimumWage.selectPrefecture", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
+            case .unavailable:
+                Label("minimumWage.unavailable", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
+            case .stale(let record):
+                Link(destination: record.sourceURL) { Label("minimumWage.stale", systemImage: "arrow.clockwise") }.font(.caption)
+            case .below(let record):
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(String(format: String(localized: "minimumWage.below"), CurrencyFormatter.string(record.hourlyAmount)), systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                    Link("minimumWage.verifyOfficial", destination: record.sourceURL)
+                }.font(.caption)
+            case .compliant(let record):
+                HStack {
+                    Label(String(format: String(localized: "minimumWage.reference"), CurrencyFormatter.string(record.hourlyAmount)), systemImage: "checkmark.circle")
+                    Spacer()
+                    Link("minimumWage.source", destination: record.sourceURL)
+                }.font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private func persist(hourlyAmount: Decimal) {
         let target = job ?? Job(displayName: name, hourlyAmount: hourlyAmount, colorHex: colorHex)
         if job == nil { context.insert(target) }
@@ -333,6 +375,7 @@ struct JobEditorView: View {
         target.employerName = employer
         target.locationName = location
         target.address = address
+        target.prefectureCode = prefectureCode
         target.colorHex = colorHex
         target.defaultStartHour = startHour
         target.defaultEndHour = endHour

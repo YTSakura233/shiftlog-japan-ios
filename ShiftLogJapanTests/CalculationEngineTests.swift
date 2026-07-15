@@ -122,7 +122,7 @@ final class CalculationEngineTests: XCTestCase {
         XCTAssertEqual(RecurrenceSeriesEngine.targetIDs(occurrences: occurrences, anchorID: anchor.id, scope: .entireSeries), [first.id, anchor.id, last.id])
     }
 
-    func testBackupVersionTwoRoundTripsAndVersionOneStillDecodes() throws {
+    func testBackupVersionThreeRoundTripsAndVersionOneStillDecodes() throws {
         let job = Job(displayName: "Legacy Job", hourlyAmount: 1_200)
         job.payPeriodKindRaw = PayPeriodKind.biweekly.rawValue
         job.payPeriodAnchor = date(2026, 7, 6, 0)
@@ -133,13 +133,15 @@ final class CalculationEngineTests: XCTestCase {
         payment.includedShiftIDsCSV = UUID().uuidString
         let encoded = try BackupService.encode(settings: [], jobs: [job], rates: [], rules: [], shifts: [], breaks: [], payments: [payment])
         let current = try BackupService.decode(encoded)
-        XCTAssertEqual(current.version, 2)
+        XCTAssertEqual(current.version, 3)
         XCTAssertEqual(current.jobs.first?.payPeriodKindRaw, PayPeriodKind.biweekly.rawValue)
         XCTAssertEqual(current.payments.first?.incomeTax, 300)
         XCTAssertEqual(current.payments.first?.includedShiftIDsCSV, payment.includedShiftIDsCSV)
 
         var root = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         root["version"] = 1
+        root.removeValue(forKey: "documents")
+        root.removeValue(forKey: "credentialReminders")
         var jobs = try XCTUnwrap(root["jobs"] as? [[String: Any]])
         ["payPeriodKindRaw", "payWeekStartDay", "payWeekday", "payPeriodAnchor", "payReminderEnabled", "payReminderDaysBefore", "shiftEndReminderEnabled"].forEach { jobs[0].removeValue(forKey: $0) }
         root["jobs"] = jobs
@@ -213,5 +215,61 @@ final class CalculationEngineTests: XCTestCase {
     func testEarningsRangeTitlesNeverExposeLocalizationKeys() {
         XCTAssertEqual(Set(EarningsRange.allCases.map(\.rawValue)), Set(["day", "week", "month", "payPeriod", "year", "custom"]))
         XCTAssertTrue(EarningsRange.allCases.allSatisfy { !$0.localizedTitle.hasPrefix("range.") && !$0.localizedTitle.isEmpty })
+    }
+
+    func testDocumentAndCredentialTypeTitlesAreLocalizedInAllLanguages() {
+        let expectedDocumentTitles = [
+            "zh-Hans": "工资单",
+            "ja": "給与明細",
+            "en": "Payslip"
+        ]
+        let expectedCredentialTitles = [
+            "zh-Hans": "护照有效期",
+            "ja": "パスポート有効期限",
+            "en": "Passport expiry"
+        ]
+
+        for localeCode in expectedDocumentTitles.keys {
+            let locale = Locale(identifier: localeCode)
+            XCTAssertEqual(EmploymentDocumentType.payslip.localizedTitle(locale: locale), expectedDocumentTitles[localeCode])
+            XCTAssertEqual(CredentialReminderType.passport.localizedTitle(locale: locale), expectedCredentialTitles[localeCode])
+            XCTAssertTrue(EmploymentDocumentType.allCases.allSatisfy { !$0.localizedTitle(locale: locale).hasPrefix("document.type.") })
+            XCTAssertTrue(CredentialReminderType.allCases.allSatisfy { !$0.localizedTitle(locale: locale).hasPrefix("credential.type.") })
+        }
+    }
+
+    func testMinimumWageCatalogUsesPrefectureAndEffectiveDate() throws {
+        let record = MinimumWageRecordValue(
+            prefectureCode: "JP-13", hourlyAmount: 1_226,
+            effectiveFrom: date(2025, 10, 3, 0), effectiveTo: nil,
+            sourceURL: MinimumWageCatalog.officialSourceURL,
+            sourceCheckedAt: date(2026, 7, 9, 0)
+        )
+        let catalog = MinimumWageCatalog(records: [record])
+        XCTAssertEqual(catalog.assess(prefectureCode: "JP-13", hourlyAmount: 1_200, on: date(2026, 7, 14, 0), referenceDate: date(2026, 7, 14, 0)), .below(record))
+        XCTAssertEqual(catalog.assess(prefectureCode: "JP-13", hourlyAmount: 1_300, on: date(2026, 7, 14, 0), referenceDate: date(2026, 7, 14, 0)), .compliant(record))
+        XCTAssertEqual(catalog.assess(prefectureCode: "", hourlyAmount: 1_300, on: date(2026, 7, 14, 0)), .missingPrefecture)
+    }
+
+    func testMinimumWageCatalogDoesNotMakeCertainComparisonWhenStale() {
+        let record = MinimumWageRecordValue(
+            prefectureCode: "JP-27", hourlyAmount: 1_177,
+            effectiveFrom: date(2025, 10, 16, 0), effectiveTo: nil,
+            sourceURL: MinimumWageCatalog.officialSourceURL,
+            sourceCheckedAt: date(2025, 1, 1, 0)
+        )
+        XCTAssertEqual(MinimumWageCatalog(records: [record]).assess(prefectureCode: "JP-27", hourlyAmount: 900, on: date(2026, 7, 14, 0), referenceDate: date(2026, 7, 14, 0)), .stale(record))
+    }
+
+    func testCredentialReminderDatesOnlyIncludeFutureNotifications() {
+        let due = date(2026, 10, 14, 9)
+        let dates = CredentialScheduleBuilder.futureFireDates(dueDate: due, reminderDays: [90, 60, 30, 14, 7], now: date(2026, 8, 1, 9), calendar: calendar)
+        XCTAssertEqual(dates.map(\.daysBefore), [60, 30, 14, 7])
+    }
+
+    func testCredentialReminderNormalizesReminderDays() {
+        let reminder = CredentialReminder(type: .passport, dueDate: date(2027, 1, 1, 0))
+        reminder.reminderDays = [7, 30, 7, 90]
+        XCTAssertEqual(reminder.reminderDays, [90, 30, 7])
     }
 }

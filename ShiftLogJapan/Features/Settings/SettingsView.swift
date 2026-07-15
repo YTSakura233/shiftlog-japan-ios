@@ -19,6 +19,8 @@ struct SettingsView: View {
     @Query private var shifts: [Shift]
     @Query private var breaks: [ShiftBreak]
     @Query private var payments: [Payment]
+    @Query private var documents: [EmploymentDocument]
+    @Query private var credentialReminders: [CredentialReminder]
     @State private var exportDocument: DataDocument?
     @State private var exportType = UTType.json
     @State private var exportName = "ShiftLog-Backup"
@@ -51,6 +53,13 @@ struct SettingsView: View {
                     Button { Task { message = await NotificationService.shared.requestAuthorization() ? String(localized: "notification.enabled") : String(localized: "notification.denied") } } label: { Label("settings.notifications", systemImage: "bell") }
                     Button { Task { message = await CalendarService.shared.requestAccess() ? String(localized: "calendar.enabled") : String(localized: "calendar.permission.denied") } } label: { Label("settings.calendar", systemImage: "calendar.badge.plus") }
                     Button { syncCalendar() } label: { Label("settings.calendar.syncNow", systemImage: "arrow.triangle.2.circlepath") }
+                }
+                Section("settings.records") {
+                    NavigationLink { DocumentLibraryView() } label: { Label("document.library", systemImage: "folder.badge.person.crop") }
+                    NavigationLink { CredentialRemindersView() } label: { Label("credential.title", systemImage: "calendar.badge.exclamationmark") }
+                    NavigationLink { OfficialHelpView() } label: { Label("help.title", systemImage: "questionmark.circle") }
+                    Toggle("privacy.biometricLock", isOn: binding(\.biometricLockEnabled, default: false))
+                    Text("privacy.biometricLock.description").font(.caption).foregroundStyle(.secondary)
                 }
                 Section("settings.data") {
                     Button { exportBackup() } label: { Label("settings.backup.export", systemImage: "square.and.arrow.up") }
@@ -86,7 +95,7 @@ struct SettingsView: View {
     }
 
     private func exportBackup() {
-        do { exportDocument = DataDocument(data: try BackupService.encode(settings: settingsList, jobs: jobs, rates: rates, rules: rules, shifts: shifts, breaks: breaks, payments: payments)); exportType = .json; exportName = "ShiftLog-Backup-\(Date().formatted(.iso8601.year().month().day()))"; exporting = true }
+        do { exportDocument = DataDocument(data: try BackupService.encode(settings: settingsList, jobs: jobs, rates: rates, rules: rules, shifts: shifts, breaks: breaks, payments: payments, documents: documents, credentialReminders: credentialReminders)); exportType = .json; exportName = "ShiftLog-Backup-\(Date().formatted(.iso8601.year().month().day()))"; exporting = true }
         catch { message = error.localizedDescription }
     }
 
@@ -104,15 +113,17 @@ struct SettingsView: View {
     }
 
     private func deleteAll() {
+        for document in documents { try? DocumentFileStore.remove(document.localFileName); context.delete(document) }
+        credentialReminders.forEach(context.delete)
         payments.forEach(context.delete); breaks.forEach(context.delete); shifts.forEach(context.delete); rules.forEach(context.delete); rates.forEach(context.delete); jobs.forEach(context.delete)
         settingsList.forEach(context.delete); try? context.save()
     }
 
     private func restore(_ payload: BackupPayload) throws {
-        let currentData = try BackupService.encode(settings: settingsList, jobs: jobs, rates: rates, rules: rules, shifts: shifts, breaks: breaks, payments: payments)
+        let currentData = try BackupService.encode(settings: settingsList, jobs: jobs, rates: rates, rules: rules, shifts: shifts, breaks: breaks, payments: payments, documents: documents, credentialReminders: credentialReminders)
         try saveAutomaticBackup(currentData)
         deleteAll()
-        payload.settings.forEach { r in let m = UserSettings(); m.id = r.id; m.localeCode = r.localeCode; m.weekStartDay = r.weekStartDay; m.workLimitEnabled = r.workLimitEnabled; m.weeklyLimitMinutes = r.weeklyLimitMinutes; m.rollingSevenDayCheckEnabled = r.rollingSevenDayCheckEnabled; m.cautionMinutes = r.cautionMinutes; m.warningMinutes = r.warningMinutes; m.disclaimerAcceptedAt = r.disclaimerAcceptedAt; m.onboardingCompleted = r.onboardingCompleted; context.insert(m) }
+        payload.settings.forEach { r in let m = UserSettings(); m.id = r.id; m.localeCode = r.localeCode; m.weekStartDay = r.weekStartDay; m.workLimitEnabled = r.workLimitEnabled; m.weeklyLimitMinutes = r.weeklyLimitMinutes; m.rollingSevenDayCheckEnabled = r.rollingSevenDayCheckEnabled; m.cautionMinutes = r.cautionMinutes; m.warningMinutes = r.warningMinutes; m.disclaimerAcceptedAt = r.disclaimerAcceptedAt; m.onboardingCompleted = r.onboardingCompleted; m.biometricLockEnabled = r.biometricLockEnabled ?? false; context.insert(m) }
         payload.jobs.forEach { r in
             let m = Job(displayName: r.displayName, colorHex: r.colorHex)
             m.id = r.id; m.employerName = r.employerName; m.locationName = r.locationName; m.address = r.address; m.prefectureCode = r.prefectureCode
@@ -134,6 +145,18 @@ struct SettingsView: View {
             m.incomeTax = r.incomeTax ?? 0; m.employmentInsurance = r.employmentInsurance ?? 0; m.healthInsurance = r.healthInsurance ?? 0; m.pension = r.pension ?? 0; m.residentTax = r.residentTax ?? 0; m.otherDeductions = r.otherDeductions ?? r.deductions
             m.receivedAmount = r.receivedAmount; m.receivedDate = r.receivedDate; m.notes = r.notes; m.includedShiftIDsCSV = r.includedShiftIDsCSV ?? ""
             context.insert(m)
+        }
+        for record in payload.documents ?? [] {
+            guard let data = record.fileData else { continue }
+            let stored = try DocumentFileStore.store(data, preferredExtension: URL(fileURLWithPath: record.originalFileName).pathExtension)
+            let document = EmploymentDocument(jobID: record.jobID, paymentID: record.paymentID, type: EmploymentDocumentType(rawValue: record.typeRaw) ?? .other, originalFileName: record.originalFileName, localFileName: stored.fileName, contentTypeIdentifier: record.contentTypeIdentifier, fileSize: stored.size)
+            document.id = record.id; document.recognizedText = record.recognizedText; document.createdAt = record.createdAt; document.updatedAt = record.updatedAt
+            context.insert(document)
+        }
+        for record in payload.credentialReminders ?? [] {
+            let reminder = CredentialReminder(type: CredentialReminderType(rawValue: record.typeRaw) ?? .residencePeriod, dueDate: record.dueDate, notes: record.notes)
+            reminder.id = record.id; reminder.reminderDaysCSV = record.reminderDaysCSV; reminder.enabled = record.enabled; reminder.createdAt = record.createdAt; reminder.updatedAt = record.updatedAt
+            context.insert(reminder)
         }
         try context.save()
     }

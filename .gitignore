@@ -1,7 +1,36 @@
 .DS_Store
+
+# Xcode user and build output
 DerivedData/
+build/
+.build/
+*.xcresult
 *.xcuserstate
 xcuserdata/
 *.xccheckout
 *.xcscmblueprint
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Local configuration and signing material
+.env
+.env.*
+!.env.example
+*.cer
+*.key
+*.mobileprovision
+*.p12
+*.pem
+.swiftpm/
+
+# Local Codex/development helpers
 .agents/
+tools/
+
+# Private administrative material and duplicate exports
+MarketingScreenshots/
+软件著作权登记资料/
+在日工作助手软件V1.0_软件著作权登记资料包.zip
+用户中心.png
+用户中心 (1).pdf

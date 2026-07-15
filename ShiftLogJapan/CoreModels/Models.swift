@@ -30,6 +30,45 @@ enum PayPeriodKind: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum EmploymentDocumentType: String, Codable, CaseIterable, Identifiable {
+    case laborConditions, employmentContract, payslip, withholdingSlip, schedule, other
+    var id: String { rawValue }
+
+    var localizedTitle: String {
+        localizedTitle(locale: .current)
+    }
+
+    func localizedTitle(locale: Locale) -> String {
+        switch self {
+        case .laborConditions: AppLocalization.string("document.type.laborConditions", defaultValue: "Working conditions notice", locale: locale)
+        case .employmentContract: AppLocalization.string("document.type.employmentContract", defaultValue: "Employment contract", locale: locale)
+        case .payslip: AppLocalization.string("document.type.payslip", defaultValue: "Payslip", locale: locale)
+        case .withholdingSlip: AppLocalization.string("document.type.withholdingSlip", defaultValue: "Withholding slip", locale: locale)
+        case .schedule: AppLocalization.string("document.type.schedule", defaultValue: "Work schedule", locale: locale)
+        case .other: AppLocalization.string("document.type.other", defaultValue: "Other", locale: locale)
+        }
+    }
+}
+
+enum CredentialReminderType: String, Codable, CaseIterable, Identifiable {
+    case residencePeriod, residenceCard, passport, workPermissionReview, myNumberCard
+    var id: String { rawValue }
+
+    var localizedTitle: String {
+        localizedTitle(locale: .current)
+    }
+
+    func localizedTitle(locale: Locale) -> String {
+        switch self {
+        case .residencePeriod: AppLocalization.string("credential.type.residencePeriod", defaultValue: "Period of stay expiry", locale: locale)
+        case .residenceCard: AppLocalization.string("credential.type.residenceCard", defaultValue: "Residence card expiry", locale: locale)
+        case .passport: AppLocalization.string("credential.type.passport", defaultValue: "Passport expiry", locale: locale)
+        case .workPermissionReview: AppLocalization.string("credential.type.workPermissionReview", defaultValue: "Work permission review", locale: locale)
+        case .myNumberCard: AppLocalization.string("credential.type.myNumberCard", defaultValue: "My Number card reminder", locale: locale)
+        }
+    }
+}
+
 @Model final class UserSettings {
     var id: UUID = UUID()
     var localeCode: String = "zh-Hans"
@@ -42,10 +81,67 @@ enum PayPeriodKind: String, Codable, CaseIterable, Identifiable {
     var warningMinutes: Int = 1_560
     var disclaimerAcceptedAt: Date?
     var onboardingCompleted: Bool = false
+    var biometricLockEnabled: Bool = false
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
 
     init() {}
+}
+
+@Model final class EmploymentDocument {
+    var id: UUID = UUID()
+    var jobID: UUID?
+    var paymentID: UUID?
+    var typeRaw: String = EmploymentDocumentType.other.rawValue
+    var originalFileName: String = ""
+    var localFileName: String = ""
+    var contentTypeIdentifier: String = "public.data"
+    var fileSize: Int64 = 0
+    var recognizedText: String = ""
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(jobID: UUID?, paymentID: UUID? = nil, type: EmploymentDocumentType, originalFileName: String, localFileName: String, contentTypeIdentifier: String, fileSize: Int64) {
+        self.jobID = jobID
+        self.paymentID = paymentID
+        self.typeRaw = type.rawValue
+        self.originalFileName = originalFileName
+        self.localFileName = localFileName
+        self.contentTypeIdentifier = contentTypeIdentifier
+        self.fileSize = fileSize
+    }
+
+    var type: EmploymentDocumentType {
+        get { EmploymentDocumentType(rawValue: typeRaw) ?? .other }
+        set { typeRaw = newValue.rawValue }
+    }
+}
+
+@Model final class CredentialReminder {
+    var id: UUID = UUID()
+    var typeRaw: String = CredentialReminderType.residencePeriod.rawValue
+    var dueDate: Date = Date()
+    var reminderDaysCSV: String = "90,60,30,14,7"
+    var notes: String = ""
+    var enabled: Bool = true
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(type: CredentialReminderType, dueDate: Date, notes: String = "") {
+        self.typeRaw = type.rawValue
+        self.dueDate = dueDate
+        self.notes = notes
+    }
+
+    var type: CredentialReminderType {
+        get { CredentialReminderType(rawValue: typeRaw) ?? .residencePeriod }
+        set { typeRaw = newValue.rawValue }
+    }
+
+    var reminderDays: [Int] {
+        get { reminderDaysCSV.split(separator: ",").compactMap { Int($0) }.sorted(by: >) }
+        set { reminderDaysCSV = Array(Set(newValue)).sorted(by: >).map(String.init).joined(separator: ",") }
+    }
 }
 
 @Model final class Job {

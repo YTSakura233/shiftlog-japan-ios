@@ -6,7 +6,8 @@ struct ShiftLogJapanApp: App {
     private let container: ModelContainer = {
         let schema = Schema([
             UserSettings.self, Job.self, WageRate.self, PremiumRule.self,
-            Shift.self, ShiftBreak.self, Payment.self
+            Shift.self, ShiftBreak.self, Payment.self, EmploymentDocument.self,
+            CredentialReminder.self
         ])
         let environment = ProcessInfo.processInfo.environment
         let isUITesting = environment["UITEST_MODE"] == "1"

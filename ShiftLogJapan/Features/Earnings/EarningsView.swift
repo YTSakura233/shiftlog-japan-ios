@@ -44,6 +44,7 @@ struct EarningsView: View {
     @Query private var rates: [WageRate]
     @Query private var premiumRules: [PremiumRule]
     @Query(sort: \Payment.periodStart, order: .reverse) private var payments: [Payment]
+    @Query private var settings: [UserSettings]
     @State private var anchor = Date()
     @State private var range = EarningsRange.month
     @State private var customStart = Date().startOfMonth
@@ -51,6 +52,7 @@ struct EarningsView: View {
     @State private var source = TimeSource.scheduled
     @State private var selectedJobID: UUID?
     @State private var showingPayment = false
+    @State private var sensitiveContentUnlocked = false
 
     private var interval: DateInterval {
         let calendar = Calendar.current
@@ -99,6 +101,17 @@ struct EarningsView: View {
     }
 
     var body: some View {
+        Group {
+            if settings.first?.biometricLockEnabled == true && !sensitiveContentUnlocked {
+                SensitiveAccessGate { sensitiveContentUnlocked = true }
+            } else {
+                earningsContent
+            }
+        }
+        .onDisappear { sensitiveContentUnlocked = false }
+    }
+
+    private var earningsContent: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {

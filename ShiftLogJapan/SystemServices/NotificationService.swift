@@ -8,6 +8,8 @@ protocol NotificationProviding: Sendable {
     func schedulePayReminder(jobID: UUID, payDate: Date, jobName: String, daysBefore: Int, enabled: Bool) async
     func cancelShiftReminder(shiftID: UUID) async
     func cancelPayReminder(jobID: UUID) async
+    func scheduleCredentialReminders(reminderID: UUID, dueDate: Date, daysBefore: [Int], title: String, enabled: Bool) async
+    func cancelCredentialReminders(reminderID: UUID) async
 }
 
 final class NotificationService: NotificationProviding, @unchecked Sendable {
@@ -67,8 +69,29 @@ final class NotificationService: NotificationProviding, @unchecked Sendable {
         center.removePendingNotificationRequests(withIdentifiers: [payIdentifier(jobID)])
     }
 
+    func scheduleCredentialReminders(reminderID: UUID, dueDate: Date, daysBefore: [Int], title: String, enabled: Bool) async {
+        await cancelCredentialReminders(reminderID: reminderID)
+        guard enabled else { return }
+        for item in CredentialScheduleBuilder.futureFireDates(dueDate: dueDate, reminderDays: daysBefore) {
+            let content = UNMutableNotificationContent()
+            content.title = String(localized: "notification.credential.title")
+            content.body = String(format: String(localized: "notification.credential.body"), title, item.daysBefore)
+            content.sound = .default
+            let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: item.date)
+            let request = UNNotificationRequest(identifier: credentialIdentifier(reminderID, item.daysBefore), content: content, trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false))
+            try? await center.add(request)
+        }
+    }
+
+    func cancelCredentialReminders(reminderID: UUID) async {
+        let prefix = "credential.\(reminderID.uuidString)."
+        let identifiers = await center.pendingNotificationRequests().map(\.identifier).filter { $0.hasPrefix(prefix) }
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
     private func legacyShiftIdentifier(_ id: UUID) -> String { "shift.\(id.uuidString)" }
     private func shiftStartIdentifier(_ id: UUID) -> String { "shift.start.\(id.uuidString)" }
     private func shiftEndIdentifier(_ id: UUID) -> String { "shift.end.\(id.uuidString)" }
     private func payIdentifier(_ id: UUID) -> String { "pay.\(id.uuidString)" }
+    private func credentialIdentifier(_ id: UUID, _ days: Int) -> String { "credential.\(id.uuidString).\(days)" }
 }

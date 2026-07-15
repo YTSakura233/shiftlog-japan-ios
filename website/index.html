@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f3ee">
+  <meta name="description" content="在日工作助手：为在日留学生和外国劳动者设计的本地优先班次、工时与工资管理 App。">
+  <meta property="og:title" content="在日工作助手 · ShiftLog Japan">
+  <meta property="og:description" content="多份工作，一本清楚的账。班次、工资和每周工时，安心放在一个地方。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ytsakura233.github.io/shiftlog-japan-ios/">
+  <meta property="og:image" content="https://ytsakura233.github.io/shiftlog-japan-ios/assets/app-icon.png">
+  <title>在日工作助手 · ShiftLog Japan</title>
+  <link rel="icon" href="assets/app-icon.png">
+  <link rel="apple-touch-icon" href="assets/app-icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skip">跳到主要内容</a>
+
+  <header class="site-header" data-header>
+    <div class="nav-wrap">
+      <a class="brand" href="#top" aria-label="在日工作助手首页">
+        <img src="assets/app-icon.png" alt="" width="44" height="44">
+        <span>
+          <strong data-i18n="brand">在日工作助手</strong>
+          <small>ShiftLog Japan</small>
+        </span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
+        <span></span><span></span><span></span>
+        <span class="sr-only" data-i18n="menu">打开菜单</span>
+      </button>
+
+      <nav class="nav-links" id="site-nav" aria-label="主导航" data-nav>
+        <a href="#features" data-i18n="navFeatures">功能</a>
+        <a href="#privacy" data-i18n="navPrivacy">隐私</a>
+        <a href="#screens" data-i18n="navScreens">界面</a>
+        <a href="#download" data-i18n="navDownload">下载</a>
+        <div class="language-switcher" aria-label="Language">
+          <button type="button" data-lang="zh" aria-pressed="true">中</button>
+          <button type="button" data-lang="ja" aria-pressed="false">日</button>
+          <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="hero-glow hero-glow-one"></div>
+      <div class="hero-glow hero-glow-two"></div>
+      <div class="shell hero-grid">
+        <div class="hero-copy reveal">
+          <div class="eyebrow"><span class="live-dot"></span><span data-i18n="eyebrow">为在日本工作的你而做</span></div>
+          <h1 data-i18n="heroTitle">多份工作，<br>一本清楚的账。</h1>
+          <p class="hero-lead" data-i18n="heroLead">把班次、工资和每周工时，安心放在一个地方。专为在日留学生与外国劳动者设计。</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#download">
+              <span class="button-icon" aria-hidden="true"></span>
+              <span><small data-i18n="iosSmall">iPhone 版</small><strong data-i18n="iosSoon">即将上线</strong></span>
+            </a>
+            <a class="text-link" href="#features"><span data-i18n="learnMore">了解它能做什么</span><span aria-hidden="true">↓</span></a>
+          </div>
+          <ul class="trust-row" aria-label="产品特点">
+            <li><span class="check">✓</span><span data-i18n="trustLocal">数据本地保存</span></li>
+            <li><span class="check">✓</span><span data-i18n="trustLanguages">中・日・英三语</span></li>
+            <li><span class="check">✓</span><span data-i18n="trustNoAccount">无需注册账号</span></li>
+          </ul>
+        </div>
+
+        <div class="hero-visual reveal" aria-label="在日工作助手 App 界面预览">
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="phone phone-back">
+            <img src="assets/03-earnings-overview-zh.png" alt="收入统计界面" width="1206" height="2622">
+          </div>
+          <div class="phone phone-front">
+            <img src="assets/01-calendar-home-zh.png" alt="日历与班次首页" width="1206" height="2622">
+          </div>
+          <div class="floating-card card-shift">
+            <span class="floating-icon">↗</span>
+            <span><small data-i18n="nextShift">下一次班次</small><strong data-i18n="shiftExample">便利店 · 周二 21:00</strong></span>
+          </div>
+          <div class="floating-card card-hours">
+            <span class="mini-ring"><b>25</b></span>
+            <span><small data-i18n="weekHours">本周工时</small><strong>25h / 28h</strong></span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-foot shell">
+        <span data-i18n="heroFoot">从下一次上班，到月底到账，都心里有数。</span>
+        <span class="rule"></span>
+      </div>
+    </section>
+
+    <section class="manifesto section" aria-labelledby="manifesto-title">
+      <div class="shell manifesto-grid">
+        <p class="section-kicker" data-i18n="manifestoKicker">为什么做它</p>
+        <div>
+          <h2 id="manifesto-title" data-i18n="manifestoTitle">在异国生活已经够复杂。<br>工作记录不该也是。</h2>
+          <p data-i18n="manifestoBody">一份在餐厅，一份在便利店；计划班次、实际工时、深夜加薪、交通费和到账金额常常散落各处。在日工作助手把这些信息放回你自己手里，用熟悉的语言，清楚地呈现。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="features section" id="features" aria-labelledby="features-title">
+      <div class="shell">
+        <div class="section-heading reveal">
+          <div>
+            <p class="section-kicker" data-i18n="featuresKicker">核心功能</p>
+            <h2 id="features-title" data-i18n="featuresTitle">真正理解多份工作的管理方式</h2>
+          </div>
+          <p data-i18n="featuresIntro">不只是记录时间，也帮你看懂收入、核对工资，并在接近自设工时上限时提前提醒。</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature-card feature-calendar reveal">
+            <div class="feature-copy">
+              <span class="feature-number">01</span>
+              <h3 data-i18n="f1Title">所有班次，一眼看清</h3>
+              <p data-i18n="f1Body">月、周、日、年视图自由切换，多份工作用颜色区分。跨日班次、重复排班和多段休息都能准确记录。</p>
+            </div>
+            <div class="calendar-art" aria-hidden="true">
+              <div class="cal-top"><span>2026.07</span><span>‹ &nbsp; ›</span></div>
+              <div class="cal-days"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+              <div class="cal-grid">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                <i></i><i class="job-blue"></i><i></i><i class="job-coral"></i><i></i><i class="job-blue"></i><i></i>
+                <i></i><i></i><i class="today"></i><i></i><i class="job-coral"></i><i></i><i></i>
+              </div>
+            </div>
+          </article>
+
+          <article class="feature-card feature-money reveal">
+            <div class="feature-copy">
+              <span class="feature-number">02</span>
+              <h3 data-i18n="f2Title">工资怎么算，明明白白</h3>
+              <p data-i18n="f2Body">按日、周、月或工资周期估算，分开显示基本工资、深夜加成、交通费和扣减，再与工资单和实际到账核对。</p>
+            </div>
+            <div class="money-art" aria-hidden="true">
+              <small data-i18n="estimated">本月计划预计</small>
+              <strong>JP¥ 38,925</strong>
+              <div class="money-bars"><i style="--h:72%"></i><i style="--h:48%"></i><i style="--h:84%"></i><i style="--h:61%"></i></div>
+              <div class="money-legend"><span><b></b>便利店</span><span><b></b>餐厅</span></div>
+            </div>
+          </article>
+
+          <article class="feature-card feature-risk reveal">
+            <div class="feature-copy">
+              <span class="feature-number">03</span>
+              <h3 data-i18n="f3Title">工时上限，提前留意</h3>
+              <p data-i18n="f3Body">把多份工作的工时合并计算，按你自己的许可条件设置每周上限、提醒阈值和连续 7 天辅助检查。</p>
+            </div>
+            <div class="risk-art" aria-hidden="true">
+              <div class="risk-head"><span data-i18n="weekProgress">本周进度</span><strong>25h</strong></div>
+              <div class="progress"><i></i></div>
+              <div class="risk-scale"><span>0h</span><span>24h</span><span>28h</span></div>
+              <div class="risk-note"><span>!</span><p data-i18n="riskNote">接近你设置的每周工时上限</p></div>
+            </div>
+          </article>
+
+          <article class="feature-card feature-docs reveal">
+            <div class="feature-copy">
+              <span class="feature-number">04</span>
+              <h3 data-i18n="f4Title">重要资料，留在身边</h3>
+              <p data-i18n="f4Body">工资单、合同和排班表可保存在 App 私有空间。设备端文字识别只生成草稿，不把文件发往服务器。</p>
+            </div>
+            <div class="docs-art" aria-hidden="true">
+              <div class="doc doc-one"><span>給与明細</span><i></i><i></i><i></i></div>
+              <div class="doc doc-two"><span>雇用契約</span><i></i><i></i><i></i></div>
+              <div class="lock-mark">⌁</div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="privacy section" id="privacy" aria-labelledby="privacy-title">
+      <div class="shell privacy-panel reveal">
+        <div class="privacy-copy">
+          <p class="section-kicker light" data-i18n="privacyKicker">隐私，不是附加选项</p>
+          <h2 id="privacy-title" data-i18n="privacyTitle">你的工作与工资，<br>只属于你。</h2>
+          <p data-i18n="privacyBody">默认不连接开发者服务器，不要求注册，不内置分析或追踪。班次、工资、证件提醒与资料优先保存在你的设备上。</p>
+          <a class="privacy-link" href="privacy.html"><span data-i18n="privacyLink">阅读隐私说明</span><span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="privacy-list">
+          <div><span class="privacy-symbol">⌂</span><p><strong data-i18n="p1Title">本地优先</strong><small data-i18n="p1Body">离线也能完整使用</small></p></div>
+          <div><span class="privacy-symbol">○</span><p><strong data-i18n="p2Title">无需账号</strong><small data-i18n="p2Body">打开 App 就能开始</small></p></div>
+          <div><span class="privacy-symbol">×</span><p><strong data-i18n="p3Title">无行为追踪</strong><small data-i18n="p3Body">不建立广告画像</small></p></div>
+          <div><span class="privacy-symbol">⌁</span><p><strong data-i18n="p4Title">可选隐私锁</strong><small data-i18n="p4Body">Face ID 或设备密码保护</small></p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screens section" id="screens" aria-labelledby="screens-title">
+      <div class="shell">
+        <div class="section-heading reveal">
+          <div>
+            <p class="section-kicker" data-i18n="screensKicker">真实 App 界面</p>
+            <h2 id="screens-title" data-i18n="screensTitle">复杂的事，也可以很清楚</h2>
+          </div>
+          <p data-i18n="screensIntro">沿用 iPhone 熟悉的交互方式，让信息密度与使用负担保持平衡。</p>
+        </div>
+        <div class="screenshot-track" data-screenshot-track>
+          <button class="screenshot-card is-tall" type="button" data-image="assets/01-calendar-home-zh.png" data-alt="日历首页">
+            <span data-i18n="screen1">日历与下一班</span>
+            <img src="assets/01-calendar-home-zh.png" alt="在日工作助手日历首页" loading="lazy" width="1206" height="2622">
+          </button>
+          <button class="screenshot-card" type="button" data-image="assets/02-day-detail-zh.png" data-alt="日期详情">
+            <span data-i18n="screen2">当天安排</span>
+            <img src="assets/02-day-detail-zh.png" alt="在日工作助手日期详情" loading="lazy" width="1206" height="2622">
+          </button>
+          <button class="screenshot-card" type="button" data-image="assets/03-earnings-overview-zh.png" data-alt="收入统计">
+            <span data-i18n="screen3">收入统计</span>
+            <img src="assets/03-earnings-overview-zh.png" alt="在日工作助手收入统计" loading="lazy" width="1206" height="2622">
+          </button>
+          <button class="screenshot-card" type="button" data-image="assets/04-jobs-overview-zh.png" data-alt="多工作管理">
+            <span data-i18n="screen4">多工作管理</span>
+            <img src="assets/04-jobs-overview-zh.png" alt="在日工作助手多工作管理" loading="lazy" width="1206" height="2622">
+          </button>
+          <button class="screenshot-card" type="button" data-image="assets/05-settings-zh.png" data-alt="工时规则设置">
+            <span data-i18n="screen5">工时与隐私设置</span>
+            <img src="assets/05-settings-zh.png" alt="在日工作助手设置界面" loading="lazy" width="1206" height="2622">
+          </button>
+        </div>
+        <p class="drag-hint" data-i18n="dragHint">横向滑动查看更多 · 点击放大</p>
+      </div>
+    </section>
+
+    <section class="languages section" aria-labelledby="languages-title">
+      <div class="shell language-panel reveal">
+        <div>
+          <p class="section-kicker" data-i18n="languageKicker">熟悉的语言，更少的误解</p>
+          <h2 id="languages-title" data-i18n="languageTitle">中文 · 日本語 · English</h2>
+        </div>
+        <p data-i18n="languageBody">从首次设置到工资单常见词汇，界面支持三种语言。你可以随时切换，不必重新开始。</p>
+      </div>
+    </section>
+
+    <section class="download section" id="download" aria-labelledby="download-title">
+      <div class="shell download-panel reveal">
+        <img class="download-icon" src="assets/app-icon.png" alt="在日工作助手图标" width="152" height="152">
+        <div class="download-copy">
+          <p class="section-kicker light" data-i18n="downloadKicker">开发进度</p>
+          <h2 id="download-title" data-i18n="downloadTitle">把每一份努力，认真记下来。</h2>
+          <p data-i18n="downloadBody">iPhone 版正在为首次发布做准备。Android 版已列入正式开发计划。</p>
+        </div>
+        <div class="platforms">
+          <div class="platform-card platform-ios">
+            <span class="platform-icon"></span>
+            <span><small>iOS</small><strong data-i18n="iosPreparing">首发准备中</strong></span>
+            <i data-i18n="soonBadge">即将上线</i>
+          </div>
+          <div class="platform-card platform-android">
+            <span class="platform-icon android-mark">◒</span>
+            <span><small>Android</small><strong data-i18n="androidDeveloping">正在开发</strong></span>
+            <i data-i18n="planBadge">开发计划</i>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-grid">
+      <div>
+        <a class="brand footer-brand" href="#top">
+          <img src="assets/app-icon.png" alt="" width="42" height="42">
+          <span><strong data-i18n="brand">在日工作助手</strong><small>ShiftLog Japan</small></span>
+        </a>
+        <p data-i18n="footerNote">记录、估算与风险提醒工具，不构成法律、税务或行政建议。</p>
+      </div>
+      <div class="footer-links">
+        <a href="privacy.html" data-i18n="footerPrivacy">隐私说明</a>
+        <a href="support.html" data-i18n="footerSupport">支持与帮助</a>
+        <a href="https://github.com/YTSakura233/shiftlog-japan-ios" target="_blank" rel="noopener" data-i18n="footerGithub">GitHub</a>
+      </div>
+    </div>
+    <div class="shell footer-bottom">
+      <span>© <span data-year></span> ShiftLog Japan</span>
+      <span data-i18n="madeFor">Made for life and work in Japan.</span>
+    </div>
+  </footer>
+
+  <dialog class="image-dialog" data-image-dialog>
+    <button type="button" class="dialog-close" aria-label="关闭预览" data-dialog-close>×</button>
+    <img src="" alt="">
+  </dialog>
+</body>
+</html>

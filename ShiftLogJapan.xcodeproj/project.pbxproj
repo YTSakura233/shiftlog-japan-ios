@@ -412,7 +412,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5935M2DQ8Z;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "在日工作助手";
+				INFOPLIST_KEY_CFBundleDisplayName = "勤记";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "将你选择的班次单向同步到独立系统日历。";
 				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "将你选择的班次单向同步到独立系统日历。";
@@ -440,7 +440,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5935M2DQ8Z;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "在日工作助手";
+				INFOPLIST_KEY_CFBundleDisplayName = "勤记";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "将你选择的班次单向同步到独立系统日历。";
 				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "将你选择的班次单向同步到独立系统日历。";

@@ -1,4 +1,4 @@
-"app.name" = "ShiftLog Japan";
+"app.name" = "勤记";
 "tab.calendar" = "Calendar"; "tab.earnings" = "Earnings"; "tab.jobs" = "Jobs"; "tab.me" = "Me";
 "common.continue" = "Continue"; "common.choose" = "Choose"; "common.allJobs" = "All jobs"; "common.cancel" = "Cancel"; "common.save" = "Save"; "common.delete" = "Delete"; "common.copy" = "Copy shift"; "common.back" = "Go back"; "common.notice" = "Notice"; "common.ok" = "OK";
 "onboarding.finish" = "Get started"; "onboarding.language.title" = "Choose a language"; "onboarding.language.note" = "You can change this later in Me."; "onboarding.purpose.title" = "How will you use the app?"; "purpose.student" = "Student part-time work"; "purpose.family" = "Dependent part-time work"; "purpose.general" = "General shift work"; "purpose.custom" = "Custom";
@@ -21,7 +21,7 @@
 "payment.add" = "Record payment"; "payment.records" = "Payments"; "payment.empty" = "No payments recorded"; "payment.gross" = "Payslip gross"; "payment.deductions" = "Total deductions"; "payment.received" = "Amount received"; "payment.receivedDate" = "Received date"; "payment.difference" = "Recorded difference";
 "settings.rules" = "Work-hour rules"; "settings.language" = "Language"; "settings.permissions" = "System access"; "settings.notifications" = "Enable notifications"; "settings.calendar" = "Allow system calendar"; "settings.calendar.syncNow" = "Sync enabled shifts now"; "settings.data" = "Data"; "settings.backup.export" = "Export local JSON backup"; "settings.backup.restore" = "Restore from JSON"; "settings.csv" = "Export shift CSV"; "settings.demo.load" = "Load demo data"; "settings.deleteAll" = "Delete all data"; "settings.delete.confirm" = "This deletes all local jobs, shifts, and wage records. Continue?";
 "settings.privacy" = "Privacy"; "privacy.local" = "Data is local-first"; "privacy.noTracking" = "No ad SDK, analytics, or tracking"; "privacy.detail" = "The default build does not contact a developer server. Calendar and notifications are used only when you choose them."; "settings.about" = "About and official resources"; "settings.version" = "Version"; "settings.official.immigration" = "Immigration Services: permission to engage in activities"; "settings.official.labor" = "MHLW: resources for foreign workers";
-"launch.subtitle" = "Shifts, hours, and earnings at a glance";
+"launch.subtitle" = "Every shift, clearly remembered.";
 "support.links.title" = "Links and support";
 "support.github" = "GitHub";
 "support.website" = "Official website";

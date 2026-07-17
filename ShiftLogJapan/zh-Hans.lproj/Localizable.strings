@@ -1,4 +1,4 @@
-"app.name" = "在日工作助手";
+"app.name" = "勤记";
 "tab.calendar" = "日历"; "tab.earnings" = "收入"; "tab.jobs" = "工作"; "tab.me" = "我的";
 "common.continue" = "继续"; "common.choose" = "请选择"; "common.allJobs" = "全部工作"; "common.cancel" = "取消"; "common.save" = "保存"; "common.delete" = "删除"; "common.copy" = "复制班次"; "common.back" = "返回修改"; "common.notice" = "提示"; "common.ok" = "好";
 "onboarding.finish" = "开始使用"; "onboarding.language.title" = "选择界面语言"; "onboarding.language.note" = "之后仍可在“我的”中修改。";
@@ -25,7 +25,7 @@
 "settings.rules" = "工时规则"; "settings.language" = "语言"; "settings.permissions" = "系统权限"; "settings.notifications" = "开启通知"; "settings.calendar" = "授权系统日历"; "settings.calendar.syncNow" = "立即同步已启用的班次";
 "settings.data" = "数据"; "settings.backup.export" = "导出本地 JSON 备份"; "settings.backup.restore" = "从 JSON 恢复"; "settings.csv" = "导出班次 CSV"; "settings.demo.load" = "加载演示数据"; "settings.deleteAll" = "删除全部数据"; "settings.delete.confirm" = "此操作会删除本机全部工作、班次和工资记录。确定继续吗？";
 "settings.privacy" = "隐私"; "privacy.local" = "数据优先保存在本机"; "privacy.noTracking" = "无广告 SDK、分析或跟踪"; "privacy.detail" = "默认构建不连接开发者服务器。系统日历和通知仅在你主动使用时访问。";
-"launch.subtitle" = "排班、工时与收入，清楚掌握";
+"launch.subtitle" = "每一班，都记得清清楚楚";
 "support.links.title" = "链接与支持";
 "support.github" = "GitHub";
 "support.website" = "官方网站";

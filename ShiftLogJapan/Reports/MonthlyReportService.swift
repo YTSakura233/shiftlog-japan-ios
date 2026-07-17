@@ -177,7 +177,7 @@ enum MonthlyReportService {
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = [
             kCGPDFContextTitle as String: localized("report.monthly", defaultValue: "Monthly work report", report: report),
-            kCGPDFContextAuthor as String: "ShiftLog Japan"
+            kCGPDFContextAuthor as String: "勤记"
         ]
         let renderer = UIGraphicsPDFRenderer(bounds: bounds, format: format)
 

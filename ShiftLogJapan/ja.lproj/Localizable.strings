@@ -1,4 +1,4 @@
-"app.name" = "バイトログ";
+"app.name" = "勤记";
 "tab.calendar" = "カレンダー"; "tab.earnings" = "収入"; "tab.jobs" = "仕事"; "tab.me" = "マイページ";
 "common.continue" = "次へ"; "common.choose" = "選択"; "common.allJobs" = "すべての仕事"; "common.cancel" = "キャンセル"; "common.save" = "保存"; "common.delete" = "削除"; "common.copy" = "シフトをコピー"; "common.back" = "修正する"; "common.notice" = "お知らせ"; "common.ok" = "OK";
 "onboarding.finish" = "はじめる"; "onboarding.language.title" = "表示言語を選択"; "onboarding.language.note" = "あとでマイページから変更できます。"; "onboarding.purpose.title" = "主な利用目的"; "purpose.student" = "留学生のアルバイト"; "purpose.family" = "家族滞在のアルバイト"; "purpose.general" = "一般的なシフト管理"; "purpose.custom" = "カスタム";
@@ -18,7 +18,7 @@
 "payment.add" = "入金を記録"; "payment.records" = "入金記録"; "payment.empty" = "入金記録はありません"; "payment.gross" = "給与明細の総支給"; "payment.deductions" = "控除合計"; "payment.received" = "実際の入金"; "payment.receivedDate" = "入金日"; "payment.difference" = "記録差額";
 "settings.rules" = "勤務時間ルール"; "settings.language" = "言語"; "settings.permissions" = "システム権限"; "settings.notifications" = "通知を有効にする"; "settings.calendar" = "カレンダーを許可"; "settings.calendar.syncNow" = "対象シフトを今すぐ同期"; "settings.data" = "データ"; "settings.backup.export" = "JSONバックアップを書き出す"; "settings.backup.restore" = "JSONから復元"; "settings.csv" = "シフトCSVを書き出す"; "settings.demo.load" = "デモデータを読み込む"; "settings.deleteAll" = "すべてのデータを削除"; "settings.delete.confirm" = "端末内の仕事、シフト、給与記録をすべて削除します。続けますか？";
 "settings.privacy" = "プライバシー"; "privacy.local" = "データは端末優先で保存"; "privacy.noTracking" = "広告SDK・分析・追跡なし"; "privacy.detail" = "標準ビルドは開発者サーバーに接続しません。カレンダーと通知はユーザーが選んだときだけ使用します。"; "settings.about" = "アプリと公式情報"; "settings.version" = "バージョン"; "settings.official.immigration" = "出入国在留管理庁：資格外活動許可"; "settings.official.labor" = "厚生労働省：外国人労働者向け情報";
-"launch.subtitle" = "シフト・勤務時間・収入をひと目で管理";
+"launch.subtitle" = "ひとつひとつのシフトを、きちんと記録。";
 "support.links.title" = "リンクとサポート";
 "support.github" = "GitHub";
 "support.website" = "公式サイト";

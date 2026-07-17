@@ -38,12 +38,18 @@ enum CalendarSyncError: LocalizedError {
     }
 
     func delete(eventIdentifier: String) throws {
-        guard let event = store.event(withIdentifier: eventIdentifier), event.calendar.title == AppConfiguration.calendarTitle else { return }
+        guard let event = store.event(withIdentifier: eventIdentifier), AppConfiguration.recognizesCalendarTitle(event.calendar.title) else { return }
         try store.remove(event, span: .thisEvent, commit: true)
     }
 
     private func appCalendar() throws -> EKCalendar {
-        if let existing = store.calendars(for: .event).first(where: { $0.title == AppConfiguration.calendarTitle }) { return existing }
+        let calendars = store.calendars(for: .event)
+        if let existing = calendars.first(where: { $0.title == AppConfiguration.calendarTitle }) { return existing }
+        if let legacy = calendars.first(where: { AppConfiguration.legacyCalendarTitles.contains($0.title) }) {
+            legacy.title = AppConfiguration.calendarTitle
+            try store.saveCalendar(legacy, commit: true)
+            return legacy
+        }
         let calendar = EKCalendar(for: .event, eventStore: store)
         calendar.title = AppConfiguration.calendarTitle
         calendar.source = store.defaultCalendarForNewEvents?.source ?? store.sources.first { $0.sourceType == .local }

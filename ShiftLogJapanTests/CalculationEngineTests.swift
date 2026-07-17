@@ -305,6 +305,21 @@ final class CalculationEngineTests: XCTestCase {
         )
     }
 
+    func testAppNameIsConsistentAcrossSupportedLanguages() {
+        for localeCode in ["zh-Hans", "zh-Hant", "ja", "en"] {
+            XCTAssertEqual(
+                AppLocalization.string("app.name", defaultValue: "", locale: Locale(identifier: localeCode)),
+                "勤记"
+            )
+        }
+    }
+
+    func testCalendarRenameRecognizesExistingAppCalendar() {
+        XCTAssertTrue(AppConfiguration.recognizesCalendarTitle("勤记"))
+        XCTAssertTrue(AppConfiguration.recognizesCalendarTitle("ShiftLog"))
+        XCTAssertFalse(AppConfiguration.recognizesCalendarTitle("Personal"))
+    }
+
     func testWidgetSnapshotContainsScheduleButNoIncomeFields() throws {
         let snapshot = SharedWidgetSnapshot(
             generatedAt: date(12),

@@ -1,6 +1,6 @@
-# ShiftLog Japan
+# 勤记
 
-在日工作助手（バイトログ）是一款面向在日留学生和外国劳动者的本地优先 iOS 班次、工时与工资管理 App。它支持同时管理多份工作，并以简体中文、繁體中文、日本語和 English 提供完整界面。
+勤记是一款面向在日留学生和外国劳动者的本地优先 iOS 班次、工时与工资管理 App。它支持同时管理多份工作，并以简体中文、繁體中文、日本語和 English 提供完整界面。
 
 [产品官网](https://ytsakura233.github.io/shiftlog-japan-ios/) · [隐私说明](website/privacy.html) · [安全报告](SECURITY.md) · [贡献指南](CONTRIBUTING.md)
 

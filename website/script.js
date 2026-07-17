@@ -1,10 +1,10 @@
 const translations = {
   zh: {
-    skip: "跳到主要内容", brand: "在日工作助手", menu: "打开菜单", navFeatures: "功能", navPrivacy: "隐私", navScreens: "界面", navDownload: "下载",
+    skip: "跳到主要内容", brand: "勤记", menu: "打开菜单", navFeatures: "功能", navPrivacy: "隐私", navScreens: "界面", navDownload: "下载",
     eyebrow: "为在日本工作的你而做", heroTitle: "多份工作，<br>一本清楚的账。", heroLead: "把班次、工资和每周工时，安心放在一个地方。专为在日留学生与外国劳动者设计。",
     iosSmall: "iPhone 版", iosSoon: "即将上线", learnMore: "了解它能做什么", trustLocal: "数据本地保存", trustLanguages: "简・繁・日・英四语", trustNoAccount: "无需注册账号",
     nextShift: "下一次班次", shiftExample: "便利店 · 周二 21:00", weekHours: "本周工时", heroFoot: "从下一次上班，到月底到账，都心里有数。",
-    manifestoKicker: "为什么做它", manifestoTitle: "在异国生活已经够复杂。<br>工作记录不该也是。", manifestoBody: "一份在餐厅，一份在便利店；计划班次、实际工时、深夜加薪、交通费和到账金额常常散落各处。在日工作助手把这些信息放回你自己手里，用熟悉的语言，清楚地呈现。",
+    manifestoKicker: "为什么做它", manifestoTitle: "在异国生活已经够复杂。<br>工作记录不该也是。", manifestoBody: "一份在餐厅，一份在便利店；计划班次、实际工时、深夜加薪、交通费和到账金额常常散落各处。勤记把这些信息放回你自己手里，用熟悉的语言，清楚地呈现。",
     featuresKicker: "核心功能", featuresTitle: "真正理解多份工作的管理方式", featuresIntro: "不只是记录时间，也帮你看懂收入、核对工资，并在接近自设工时上限时提前提醒。",
     f1Title: "所有班次，一眼看清", f1Body: "月、周、日、年视图自由切换，多份工作用颜色区分。跨日班次、重复排班和多段休息都能准确记录。",
     f2Title: "工资怎么算，明明白白", f2Body: "按日、周、月或工资周期估算，分开显示基本工资、深夜加成、交通费和扣减，再与工资单和实际到账核对。", estimated: "本月计划预计",
@@ -19,11 +19,11 @@ const translations = {
     footerNote: "记录、估算与风险提醒工具，不构成法律、税务或行政建议。", footerPrivacy: "隐私说明", footerSupport: "支持与帮助", footerGithub: "GitHub", madeFor: "为在日本的生活与工作而做。"
   },
   ja: {
-    skip: "メインコンテンツへ", brand: "バイトログ", menu: "メニューを開く", navFeatures: "機能", navPrivacy: "プライバシー", navScreens: "画面", navDownload: "ダウンロード",
+    skip: "メインコンテンツへ", brand: "勤记", menu: "メニューを開く", navFeatures: "機能", navPrivacy: "プライバシー", navScreens: "画面", navDownload: "ダウンロード",
     eyebrow: "日本で働くあなたのために", heroTitle: "複数の仕事を、<br>ひとつの見通しへ。", heroLead: "シフト、給与、週の労働時間を、安心してひとつの場所に。留学生と外国人労働者のために設計しました。",
     iosSmall: "iPhone 版", iosSoon: "近日公開", learnMore: "できることを見る", trustLocal: "データは端末に保存", trustLanguages: "簡・繁・日・英の4言語", trustNoAccount: "アカウント登録不要",
     nextShift: "次のシフト", shiftExample: "コンビニ · 火曜 21:00", weekHours: "今週の時間", heroFoot: "次のシフトから月末の入金まで、すっきり把握。",
-    manifestoKicker: "つくった理由", manifestoTitle: "海外での暮らしは、もう十分複雑。<br>仕事の記録まで複雑にしない。", manifestoBody: "飲食店とコンビニ。予定、実績、深夜手当、交通費、振込額は別々になりがちです。バイトログはその情報をあなたの手元に戻し、慣れた言葉で分かりやすく整理します。",
+    manifestoKicker: "つくった理由", manifestoTitle: "海外での暮らしは、もう十分複雑。<br>仕事の記録まで複雑にしない。", manifestoBody: "飲食店とコンビニ。予定、実績、深夜手当、交通費、振込額は別々になりがちです。勤记はその情報をあなたの手元に戻し、慣れた言葉で分かりやすく整理します。",
     featuresKicker: "主な機能", featuresTitle: "複数の仕事を、本当に分かりやすく", featuresIntro: "時間の記録だけでなく、収入の把握、給与の照合、自分で設定した上限への接近も知らせます。",
     f1Title: "すべてのシフトを、ひと目で", f1Body: "月・週・日・年表示を切り替え、仕事ごとに色分け。日をまたぐシフト、繰り返し、複数の休憩も正確に記録できます。",
     f2Title: "給与の内訳を、明快に", f2Body: "日・週・月・給与期間で見積もり、基本給、深夜加算、交通費、控除を分けて表示。給与明細や入金額とも照合できます。", estimated: "今月の予定見込",
@@ -38,11 +38,11 @@ const translations = {
     footerNote: "記録・見積もり・リスク通知のためのツールであり、法律・税務・行政上の助言ではありません。", footerPrivacy: "プライバシー", footerSupport: "サポート", footerGithub: "GitHub", madeFor: "日本での暮らしと仕事のために。"
   },
   en: {
-    skip: "Skip to main content", brand: "ShiftLog Japan", menu: "Open menu", navFeatures: "Features", navPrivacy: "Privacy", navScreens: "Screens", navDownload: "Get the app",
+    skip: "Skip to main content", brand: "勤记", menu: "Open menu", navFeatures: "Features", navPrivacy: "Privacy", navScreens: "Screens", navDownload: "Get the app",
     eyebrow: "Made for your working life in Japan", heroTitle: "More than one job.<br>One clear picture.", heroLead: "Keep shifts, pay, and weekly hours together with confidence. Designed for international students and foreign workers in Japan.",
     iosSmall: "For iPhone", iosSoon: "Coming soon", learnMore: "See what it can do", trustLocal: "Data stays local", trustLanguages: "Four interface languages", trustNoAccount: "No account required",
     nextShift: "Next shift", shiftExample: "Convenience store · Tue 21:00", weekHours: "This week", heroFoot: "From your next shift to payday, know where you stand.",
-    manifestoKicker: "Why we made it", manifestoTitle: "Life abroad is complex enough.<br>Tracking work shouldn't be.", manifestoBody: "A restaurant job, a convenience-store shift—planned hours, actual time, night premiums, transit costs, and deposits often live in different places. ShiftLog Japan puts that information back in your hands, clearly and in familiar language.",
+    manifestoKicker: "Why we made it", manifestoTitle: "Life abroad is complex enough.<br>Tracking work shouldn't be.", manifestoBody: "A restaurant job, a convenience-store shift—planned hours, actual time, night premiums, transit costs, and deposits often live in different places. 勤记 puts that information back in your hands, clearly and in familiar language.",
     featuresKicker: "Core features", featuresTitle: "Built around the reality of multiple jobs", featuresIntro: "It goes beyond time tracking to explain earnings, reconcile pay, and warn you before you approach your own weekly limit.",
     f1Title: "Every shift at a glance", f1Body: "Switch between month, week, day, and year views, with a color for each job. Overnight shifts, repeats, and multiple breaks are all handled accurately.",
     f2Title: "Understand every yen", f2Body: "Estimate by day, week, month, or pay period. See base pay, night premiums, travel costs, and deductions separately, then compare against your payslip and deposit.", estimated: "Planned this month",
@@ -59,7 +59,7 @@ const translations = {
 };
 
 const languageNames = { zh: "zh-CN", ja: "ja-JP", en: "en" };
-const titleMap = { zh: "在日工作助手 · ShiftLog Japan", ja: "バイトログ · ShiftLog Japan", en: "ShiftLog Japan · Work and pay, clearly" };
+const titleMap = { zh: "勤记 · 在日排班与收入记录", ja: "勤记 · シフトと給与を明快に", en: "勤记 · Work and pay, clearly" };
 
 function setLanguage(language) {
   const lang = translations[language] ? language : "zh";

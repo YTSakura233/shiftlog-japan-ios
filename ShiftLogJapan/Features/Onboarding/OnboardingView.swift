@@ -24,14 +24,18 @@ struct OnboardingView: View {
         NavigationStack {
             VStack(spacing: 24) {
                 ProgressView(value: Double(step + 1), total: 4).padding(.horizontal)
-                Group {
-                    switch step {
-                    case 0: languageStep
-                    case 1: purposeStep
-                    case 2: ruleStep
-                    default: firstJobStep
+                ScrollView {
+                    Group {
+                        switch step {
+                        case 0: languageStep
+                        case 1: purposeStep
+                        case 2: ruleStep
+                        default: firstJobStep
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .scrollIndicators(.hidden)
                 Spacer()
                 Button(step == 3 ? "onboarding.finish" : "common.continue") {
                     if step < 3 { step += 1 } else { finish() }
@@ -55,9 +59,37 @@ struct OnboardingView: View {
             Image(systemName: "globe.asia.australia.fill").font(.system(size: 56)).foregroundStyle(.tint)
             Text("onboarding.language.title").font(.largeTitle.bold())
                 .accessibilityIdentifier("onboarding.language.title")
-            Picker("onboarding.language.title", selection: $localeCode) {
-                Text("简体中文").tag("zh-Hans"); Text("日本語").tag("ja"); Text("English").tag("en")
-            }.pickerStyle(.segmented)
+            VStack(spacing: 10) {
+                ForEach(AppLanguage.allCases) { language in
+                    Button {
+                        localeCode = language.rawValue
+                    } label: {
+                        HStack {
+                            Text(language.nativeName)
+                                .font(.body.weight(.medium))
+                            Spacer()
+                            if localeCode == language.rawValue {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 50)
+                        .background(
+                            localeCode == language.rawValue
+                                ? Color.accentColor.opacity(0.12)
+                                : Color.secondary.opacity(0.08),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(localeCode == language.rawValue ? Color.accentColor.opacity(0.45) : .clear)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(localeCode == language.rawValue ? .isSelected : [])
+                }
+            }
             Text("onboarding.language.note").foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -67,12 +99,12 @@ struct OnboardingView: View {
             Image(systemName: "person.text.rectangle").font(.system(size: 52)).foregroundStyle(.tint)
             Text("onboarding.purpose.title").font(.largeTitle.bold())
                 .accessibilityIdentifier("onboarding.purpose.title")
-            Picker("onboarding.purpose.title", selection: $purpose) {
-                Text("purpose.student").tag("student")
-                Text("purpose.family").tag("family")
-                Text("purpose.general").tag("general")
-                Text("purpose.custom").tag("custom")
-            }.pickerStyle(.inline)
+            VStack(spacing: 10) {
+                choiceButton("purpose.student", value: "student")
+                choiceButton("purpose.family", value: "family")
+                choiceButton("purpose.general", value: "general")
+                choiceButton("purpose.custom", value: "custom")
+            }
             Label("disclaimer.short", systemImage: "info.circle").font(.footnote).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: purpose) { _, value in limitEnabled = value == "student" || value == "family" }
@@ -166,10 +198,37 @@ struct OnboardingView: View {
 
     private var selectedLocale: Locale { Locale(identifier: localeCode) }
 
+    private func choiceButton(_ title: LocalizedStringKey, value: String) -> some View {
+        Button {
+            purpose = value
+        } label: {
+            HStack {
+                Text(title)
+                    .font(.body.weight(.medium))
+                Spacer()
+                if purpose == value {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.tint)
+                }
+            }
+            .padding(.horizontal, 16)
+            .frame(minHeight: 50)
+            .background(
+                purpose == value
+                    ? Color.accentColor.opacity(0.12)
+                    : Color.secondary.opacity(0.08),
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(purpose == value ? Color.accentColor.opacity(0.45) : .clear)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(purpose == value ? .isSelected : [])
+    }
+
     private static func preferredLocaleCode(_ locale: Locale = .current) -> String {
-        let identifier = locale.identifier.lowercased()
-        if identifier.hasPrefix("ja") { return "ja" }
-        if identifier.hasPrefix("en") { return "en" }
-        return "zh-Hans"
+        AppLanguage.preferred(for: locale).rawValue
     }
 }

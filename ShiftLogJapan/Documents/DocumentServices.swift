@@ -44,7 +44,7 @@ enum DeviceOCRService {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
-        request.recognitionLanguages = ["ja-JP", "zh-Hans", "en-US"]
+        request.recognitionLanguages = ["ja-JP", "zh-Hans", "zh-Hant", "en-US"]
 
         if url.pathExtension.lowercased() == "pdf" {
             guard let document = PDFDocument(url: url), let page = document.page(at: 0) else {

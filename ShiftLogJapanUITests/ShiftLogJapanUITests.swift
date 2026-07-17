@@ -5,6 +5,7 @@ import XCTest
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_MODE"] = "1"
         app.launchEnvironment["UITEST_LOCALE"] = locale
+        app.launchEnvironment["UITEST_DISABLE_SPLASH"] = "1"
         app.launchArguments += ["-AppleLanguages", "(\(locale))", "-AppleLocale", locale]
         app.launch()
         return app
@@ -15,6 +16,7 @@ import XCTest
         app.launchEnvironment["UITEST_MODE"] = "1"
         app.launchEnvironment["UITEST_ONBOARDING"] = "1"
         app.launchEnvironment["UITEST_LOCALE"] = "zh-Hans"
+        app.launchEnvironment["UITEST_DISABLE_SPLASH"] = "1"
         app.launchArguments += ["-AppleLanguages", "(zh-Hans)", "-AppleLocale", "zh-Hans"]
         app.launch()
         return app
@@ -29,6 +31,7 @@ import XCTest
     func testOnboardingLanguageSelectionUpdatesCurrentAndFollowingPages() {
         let cases = [
             (option: "简体中文", languageTitle: "选择界面语言", continueTitle: "继续", purposeTitle: "你的主要用途", calendarTitle: "日历"),
+            (option: "繁體中文", languageTitle: "選擇介面語言", continueTitle: "繼續", purposeTitle: "你的主要用途", calendarTitle: "日曆"),
             (option: "日本語", languageTitle: "表示言語を選択", continueTitle: "次へ", purposeTitle: "主な利用目的", calendarTitle: "カレンダー"),
             (option: "English", languageTitle: "Choose a language", continueTitle: "Continue", purposeTitle: "How will you use the app?", calendarTitle: "Calendar")
         ]
@@ -65,6 +68,7 @@ import XCTest
     func testEarningsRangeTitlesAreLocalizedInAllLanguages() {
         let cases = [
             ("zh-Hans", ["日", "周", "月", "工资周期", "年", "自定义"]),
+            ("zh-Hant", ["日", "週", "月", "薪資週期", "年", "自訂"]),
             ("ja", ["日", "週", "月", "給与期間", "年", "期間指定"]),
             ("en", ["Day", "Week", "Month", "Pay period", "Year", "Custom"])
         ]
@@ -121,6 +125,31 @@ import XCTest
 
         app.tabBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.buttons["shift.add"].waitForExistence(timeout: 2))
+    }
+
+    func testSupportLinksAndDonationCodesAreReachable() {
+        let app = launch(locale: "zh-Hans")
+        app.tabBars.buttons.element(boundBy: 3).tap()
+
+        let donate = app.buttons["settings.donate"]
+        for _ in 0..<10 where !donate.isHittable { app.swipeUp() }
+        XCTAssertTrue(app.descendants(matching: .any)["settings.github"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["settings.website"].exists)
+        XCTAssertTrue(donate.waitForExistence(timeout: 3))
+        donate.tap()
+
+        XCTAssertTrue(app.images["donation.qr.alipay"].waitForExistence(timeout: 3))
+        app.segmentedControls.buttons["微信"].tap()
+        XCTAssertTrue(app.images["donation.qr.wechat"].waitForExistence(timeout: 3))
+    }
+
+    func testMonthlyPDFExportIsAvailableFromEarnings() {
+        let app = launch(locale: "zh-Hant")
+        app.tabBars.buttons.element(boundBy: 1).tap()
+
+        let exportButton = app.buttons["report.exportPDF"]
+        XCTAssertTrue(exportButton.waitForExistence(timeout: 3))
+        XCTAssertEqual(exportButton.label, "匯出 PDF 月報")
     }
 
     func testExistingShiftCanBeDeleted() {

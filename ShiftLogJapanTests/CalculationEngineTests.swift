@@ -1,4 +1,5 @@
 import XCTest
+import PDFKit
 @testable import ShiftLogJapan
 
 final class CalculationEngineTests: XCTestCase {
@@ -155,9 +156,11 @@ final class CalculationEngineTests: XCTestCase {
         XCTAssertNil(decoded.payments.first?.otherDeductions)
     }
 
-    func testNullAdProviderNeverReturnsContent() {
-        XCTAssertNil(NullAdProvider().contentIdentifier(for: .calendarSummary))
-        XCTAssertFalse(AppConfiguration.advertisingEnabled)
+    func testPublicProjectLinksUseHTTPS() {
+        XCTAssertEqual(AppConfiguration.githubURL.scheme, "https")
+        XCTAssertEqual(AppConfiguration.githubURL.host, "github.com")
+        XCTAssertEqual(AppConfiguration.websiteURL.scheme, "https")
+        XCTAssertEqual(AppConfiguration.websiteURL.host, "ytsakura233.github.io")
     }
 
     func testStartDateChangeKeepsEndTimeAndSynchronizesDay() {
@@ -270,11 +273,13 @@ final class CalculationEngineTests: XCTestCase {
     func testDocumentAndCredentialTypeTitlesAreLocalizedInAllLanguages() {
         let expectedDocumentTitles = [
             "zh-Hans": "工资单",
+            "zh-Hant": "薪資單",
             "ja": "給与明細",
             "en": "Payslip"
         ]
         let expectedCredentialTitles = [
             "zh-Hans": "护照有效期",
+            "zh-Hant": "護照有效期",
             "ja": "パスポート有効期限",
             "en": "Passport expiry"
         ]
@@ -286,6 +291,135 @@ final class CalculationEngineTests: XCTestCase {
             XCTAssertTrue(EmploymentDocumentType.allCases.allSatisfy { !$0.localizedTitle(locale: locale).hasPrefix("document.type.") })
             XCTAssertTrue(CredentialReminderType.allCases.allSatisfy { !$0.localizedTitle(locale: locale).hasPrefix("credential.type.") })
         }
+    }
+
+    func testTraditionalChineseSelectionAndResourceFallback() {
+        XCTAssertEqual(AppLanguage.preferred(for: Locale(identifier: "zh_TW")), .traditionalChinese)
+        XCTAssertEqual(AppLanguage.preferred(for: Locale(identifier: "zh_HK")), .traditionalChinese)
+        XCTAssertEqual(AppLanguage.preferred(for: Locale(identifier: "zh_CN")), .simplifiedChinese)
+        XCTAssertEqual(AppLocalization.supportedResource(for: Locale(identifier: "zh-Hant")), "zh-Hant")
+        XCTAssertEqual(AppLocalization.supportedResource(for: Locale(identifier: "zh-Hans")), "zh-Hans")
+        XCTAssertEqual(
+            AppLocalization.string("report.monthly", defaultValue: "Monthly work report", locale: Locale(identifier: "zh-Hant")),
+            "每月工作報告"
+        )
+    }
+
+    func testWidgetSnapshotContainsScheduleButNoIncomeFields() throws {
+        let snapshot = SharedWidgetSnapshot(
+            generatedAt: date(12),
+            localeCode: "zh-Hant",
+            scheduledShifts: [
+                SharedWidgetShift(
+                    jobName: "咖啡店",
+                    start: date(9),
+                    end: date(17),
+                    colorHex: "#315C8C",
+                    effectiveMinutes: 420
+                )
+            ]
+        )
+        let data = try JSONEncoder().encode(snapshot)
+        let json = try XCTUnwrap(String(data: data, encoding: .utf8))
+        XCTAssertTrue(json.contains("咖啡店"))
+        XCTAssertFalse(json.lowercased().contains("wage"))
+        XCTAssertFalse(json.lowercased().contains("amount"))
+        XCTAssertFalse(json.lowercased().contains("payment"))
+        XCTAssertEqual(try JSONDecoder().decode(SharedWidgetSnapshot.self, from: data), snapshot)
+    }
+
+    func testActualMonthlyReportUsesActualDateInsteadOfScheduledDate() {
+        let job = Job(displayName: "咖啡店", colorHex: "#315C8C")
+        let rate = WageRate(jobID: job.id, hourlyAmount: 1_200)
+        let shift = Shift(
+            jobID: job.id,
+            scheduledStart: date(2026, 7, 31, 12),
+            scheduledEnd: date(2026, 7, 31, 13)
+        )
+        shift.actualStart = date(2026, 8, 1, 9)
+        shift.actualEnd = date(2026, 8, 1, 17)
+        shift.actualConfirmed = true
+
+        let report = MonthlyReportService.makeReport(
+            month: date(2026, 8, 1, 0),
+            source: .actual,
+            locale: Locale(identifier: "zh-Hant"),
+            jobs: [job],
+            shifts: [shift],
+            breaks: [],
+            rates: [rate],
+            premiumRules: [],
+            payments: [],
+            calendar: calendar
+        )
+
+        XCTAssertEqual(report.shifts.count, 1)
+        XCTAssertEqual(report.shifts.first?.start, shift.actualStart)
+    }
+
+    func testTraditionalChineseMonthlyPDFPaginatesAndIsSearchable() throws {
+        let shifts = (1...46).map { index in
+            MonthlyReportShiftRow(
+                jobName: index.isMultiple(of: 2) ? "咖啡店" : "便利商店",
+                colorHex: "#315C8C",
+                start: date(2026, 7, (index - 1) % 28 + 1, 9),
+                end: date(2026, 7, (index - 1) % 28 + 1, 17),
+                minutes: 420,
+                total: 8_400
+            )
+        }
+        let report = MonthlyReport(
+            month: date(2026, 7, 1, 0),
+            generatedAt: date(2026, 7, 16, 12),
+            localeIdentifier: "zh-Hant",
+            sourceTitle: "排班",
+            jobSummaries: [
+                MonthlyReportJobSummary(
+                    jobName: "咖啡店",
+                    colorHex: "#315C8C",
+                    shiftCount: 23,
+                    minutes: 9_660,
+                    baseWage: 184_000,
+                    premiumWage: 9_200,
+                    transport: 4_600,
+                    total: 197_800
+                ),
+                MonthlyReportJobSummary(
+                    jobName: "便利商店",
+                    colorHex: "#6C8E5D",
+                    shiftCount: 23,
+                    minutes: 9_660,
+                    baseWage: 184_000,
+                    premiumWage: 9_200,
+                    transport: 4_600,
+                    total: 197_800
+                )
+            ],
+            shifts: shifts,
+            payments: [
+                MonthlyReportPaymentRow(
+                    jobName: "咖啡店",
+                    periodStart: date(2026, 7, 1, 0),
+                    periodEnd: date(2026, 7, 31, 0),
+                    gross: 197_800,
+                    deductions: 8_000,
+                    received: 189_800
+                )
+            ]
+        )
+
+        let data = MonthlyReportService.render(report)
+        XCTAssertTrue(data.starts(with: Data("%PDF".utf8)))
+        let document = try XCTUnwrap(PDFDocument(data: data))
+        XCTAssertGreaterThanOrEqual(document.pageCount, 3)
+        let text = (0..<document.pageCount).compactMap { document.page(at: $0)?.string }.joined(separator: "\n")
+        XCTAssertTrue(text.contains("每月工作報告"))
+        XCTAssertTrue(text.contains("咖啡店"))
+        XCTAssertTrue(text.contains("本報告僅供個人記錄"))
+
+        let sampleURL = FileManager.default.temporaryDirectory.appendingPathComponent("ShiftLog-Monthly-Report-Sample.pdf")
+        try data.write(to: sampleURL, options: .atomic)
+        print("PDF_SAMPLE_PATH=\(sampleURL.path)")
     }
 
     func testMinimumWageCatalogUsesPrefectureAndEffectiveDate() throws {

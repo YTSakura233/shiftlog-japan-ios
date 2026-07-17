@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import Charts
+import UniformTypeIdentifiers
 
 enum EarningsRange: String, CaseIterable, Identifiable {
     case day, week, month, payPeriod, year, custom
@@ -53,6 +54,10 @@ struct EarningsView: View {
     @State private var selectedJobID: UUID?
     @State private var showingPayment = false
     @State private var sensitiveContentUnlocked = false
+    @State private var exportingMonthlyReport = false
+    @State private var monthlyReportDocument: MonthlyReportDocument?
+    @State private var monthlyReportFilename = "ShiftLog-Monthly.pdf"
+    @State private var reportMessage: String?
 
     private var interval: DateInterval {
         let calendar = Calendar.current
@@ -138,8 +143,32 @@ struct EarningsView: View {
                 }.padding()
             }
             .navigationTitle("tab.earnings")
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { showingPayment = true } label: { Image(systemName: "plus") }.accessibilityLabel("payment.add") } }
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { exportMonthlyReport() } label: { Image(systemName: "doc.richtext") }
+                        .accessibilityLabel("report.exportPDF")
+                        .accessibilityIdentifier("report.exportPDF")
+                    Button { showingPayment = true } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("payment.add")
+                }
+            }
             .sheet(isPresented: $showingPayment) { PaymentEditorView(defaultInterval: interval, selectedJobID: selectedJobID) }
+            .fileExporter(
+                isPresented: $exportingMonthlyReport,
+                document: monthlyReportDocument,
+                contentType: .pdf,
+                defaultFilename: monthlyReportFilename
+            ) { result in
+                if case .failure(let error) = result { reportMessage = error.localizedDescription }
+            }
+            .alert("report.failed", isPresented: Binding(
+                get: { reportMessage != nil },
+                set: { if !$0 { reportMessage = nil } }
+            )) {
+                Button("common.ok") { reportMessage = nil }
+            } message: {
+                Text(reportMessage ?? "")
+            }
         }
     }
 
@@ -267,6 +296,28 @@ struct EarningsView: View {
         case .year: .year
         }
         anchor = Calendar.current.date(byAdding: component, value: amount, to: anchor) ?? anchor
+    }
+
+    private func exportMonthlyReport() {
+        let report = MonthlyReportService.makeReport(
+            month: anchor,
+            source: source,
+            locale: locale,
+            jobs: jobs,
+            shifts: shifts,
+            breaks: breaks,
+            rates: rates,
+            premiumRules: premiumRules,
+            payments: payments
+        )
+        let data = MonthlyReportService.render(report)
+        guard !data.isEmpty else {
+            reportMessage = String(localized: "report.renderFailed")
+            return
+        }
+        monthlyReportDocument = MonthlyReportDocument(data: data)
+        monthlyReportFilename = MonthlyReportService.filename(for: report.month)
+        exportingMonthlyReport = true
     }
 }
 

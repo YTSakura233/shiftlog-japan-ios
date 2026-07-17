@@ -1,10 +1,9 @@
+import Foundation
+
 enum AppConfiguration {
     static let currencyCode = "JPY"
     static let calendarTitle = "ShiftLog"
-    static let advertisingEnabled = false
-    static let subscriptionProductIDs = [
-        "com.example.shiftlog.removeads.monthly",
-        "com.example.shiftlog.removeads.quarterly",
-        "com.example.shiftlog.removeads.yearly"
-    ]
+    static let appGroupIdentifier = "group.com.example.shiftlogjapan"
+    static let githubURL = URL(string: "https://github.com/YTSakura233/shiftlog-japan-ios")!
+    static let websiteURL = URL(string: "https://ytsakura233.github.io/shiftlog-japan-ios/")!
 }

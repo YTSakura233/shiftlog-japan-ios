@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var importing = false
     @State private var message: String?
     @State private var showingDeleteAll = false
+    @State private var showingDonation = false
 
     private var settings: UserSettings? { settingsList.first }
 
@@ -46,7 +47,9 @@ struct SettingsView: View {
                 }
                 Section("settings.language") {
                     Picker("settings.language", selection: binding(\.localeCode, default: "zh-Hans")) {
-                        Text("简体中文").tag("zh-Hans"); Text("日本語").tag("ja"); Text("English").tag("en")
+                        ForEach(AppLanguage.allCases) { language in
+                            Text(language.nativeName).tag(language.rawValue)
+                        }
                     }
                 }
                 Section("settings.permissions") {
@@ -78,6 +81,20 @@ struct SettingsView: View {
                     Link("settings.official.immigration", destination: URL(string: "https://www.moj.go.jp/isa/applications/procedures/shikakugai_00001.html")!)
                     Link("settings.official.labor", destination: URL(string: "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudoukijun/foreign/index.html")!)
                 }
+                Section("support.links.title") {
+                    Link(destination: AppConfiguration.githubURL) {
+                        Label("support.github", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                    .accessibilityIdentifier("settings.github")
+                    Link(destination: AppConfiguration.websiteURL) {
+                        Label("support.website", systemImage: "globe")
+                    }
+                    .accessibilityIdentifier("settings.website")
+                    Button { showingDonation = true } label: {
+                        Label("support.donate", systemImage: "heart.circle.fill")
+                    }
+                    .accessibilityIdentifier("settings.donate")
+                }
             }
             .navigationTitle("tab.me")
             .fileExporter(isPresented: $exporting, document: exportDocument, contentType: exportType, defaultFilename: exportName) { result in if case .failure(let error) = result { message = error.localizedDescription } }
@@ -87,6 +104,7 @@ struct SettingsView: View {
             }
             .alert("common.notice", isPresented: Binding(get: { message != nil }, set: { if !$0 { message = nil } })) { Button("common.ok") { message = nil } } message: { Text(message ?? "") }
             .confirmationDialog("settings.delete.confirm", isPresented: $showingDeleteAll, titleVisibility: .visible) { Button("settings.deleteAll", role: .destructive) { deleteAll() } }
+            .sheet(isPresented: $showingDonation) { DonationView() }
         }
     }
 

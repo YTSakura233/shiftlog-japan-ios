@@ -21,6 +21,11 @@ struct ShiftLogJapanApp: App {
                 settings.localeCode = environment["UITEST_LOCALE"] ?? "en"
                 settings.disclaimerAcceptedAt = Date()
                 settings.onboardingCompleted = !isOnboardingUITest
+                if environment["UITEST_LIMIT_BREACH"] == "1" {
+                    settings.weeklyLimitMinutes = 4 * 60
+                    settings.cautionMinutes = 2 * 60
+                    settings.warningMinutes = 3 * 60
+                }
                 context.insert(settings)
                 if !isOnboardingUITest {
                     let job = Job(displayName: "UI Test Job", hourlyAmount: 1_200, colorHex: AppTheme.palette[0])

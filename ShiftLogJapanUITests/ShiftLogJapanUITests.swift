@@ -1,11 +1,12 @@
 import XCTest
 
 @MainActor final class ShiftLogJapanUITests: XCTestCase {
-    private func launch(locale: String = "en") -> XCUIApplication {
+    private func launch(locale: String = "en", limitBreach: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["UITEST_MODE"] = "1"
         app.launchEnvironment["UITEST_LOCALE"] = locale
         app.launchEnvironment["UITEST_DISABLE_SPLASH"] = "1"
+        if limitBreach { app.launchEnvironment["UITEST_LIMIT_BREACH"] = "1" }
         app.launchArguments += ["-AppleLanguages", "(\(locale))", "-AppleLocale", locale]
         app.launch()
         return app
@@ -110,6 +111,15 @@ import XCTest
         XCTAssertEqual(app.switches["shift.crossDay"].value as? String, "0")
         XCTAssertTrue(app.datePickers["shift.start"].exists)
         XCTAssertTrue(app.datePickers["shift.end"].exists)
+    }
+
+    func testExceededHourRangeIsMarkedOnCalendar() {
+        let app = launch(limitBreach: true)
+
+        XCTAssertTrue(app.descendants(matching: .any)["calendar.limit.exceeded.legend"].waitForExistence(timeout: 3))
+        let today = app.buttons[calendarDayID(Date())]
+        XCTAssertTrue(today.waitForExistence(timeout: 3))
+        XCTAssertTrue(today.label.contains("This date is within a period above your hour setting"))
     }
 
     func testFloatingAddShiftButtonOnlyAppearsOnCalendarTab() {

@@ -75,6 +75,100 @@ final class CalculationEngineTests: XCTestCase {
         XCTAssertEqual(risk.level, .exceeded)
     }
 
+    func testExceededIntervalsReturnsTheWholeConfiguredWeek() {
+        let shifts = (0..<6).map { index in
+            ShiftInterval(
+                id: UUID(),
+                jobID: UUID(),
+                start: date(2026, 7, 13 + index, 9),
+                end: date(2026, 7, 13 + index, 14),
+                breakMinutes: 0,
+                isCancelled: false
+            )
+        }
+        let visibleRange = DateInterval(start: date(2026, 7, 1, 0), end: date(2026, 8, 1, 0))
+
+        let breaches = WorkLimitEngine.exceededIntervals(
+            overlapping: visibleRange,
+            shifts: shifts,
+            limitMinutes: 1_680,
+            weekStartDay: 2,
+            includeRollingSevenDays: false,
+            calendar: calendar
+        )
+
+        let breach = breaches.first { $0.kind == .calendarWeek }
+        XCTAssertEqual(breach?.interval.start, date(2026, 7, 13, 0))
+        XCTAssertEqual(breach?.interval.end, date(2026, 7, 20, 0))
+        XCTAssertEqual(breach?.minutes, 1_800)
+    }
+
+    func testExceededIntervalsIncludesTheEntireRollingSevenDayWindow() {
+        let shifts = (0..<7).map { index in
+            ShiftInterval(
+                id: UUID(),
+                jobID: UUID(),
+                start: date(2026, 7, 10 + index, 9),
+                end: date(2026, 7, 10 + index, 14),
+                breakMinutes: 0,
+                isCancelled: false
+            )
+        }
+        let visibleRange = DateInterval(start: date(2026, 7, 16, 0), end: date(2026, 7, 17, 0))
+
+        let breaches = WorkLimitEngine.exceededIntervals(
+            overlapping: visibleRange,
+            shifts: shifts,
+            limitMinutes: 1_680,
+            weekStartDay: 2,
+            includeRollingSevenDays: true,
+            calendar: calendar
+        )
+
+        let expectedStart = date(2026, 7, 10, 0)
+        let expectedEnd = date(2026, 7, 17, 0)
+        let breach = breaches.first { $0.kind == .rollingSevenDays && $0.interval.start == expectedStart && $0.interval.end == expectedEnd }
+        XCTAssertEqual(breach?.minutes, 2_100)
+    }
+
+    func testExceededIntervalsDoesNotMarkAWindowEqualToTheLimit() {
+        let shifts = (0..<7).map { index in
+            ShiftInterval(
+                id: UUID(),
+                jobID: UUID(),
+                start: date(2026, 7, 13 + index, 9),
+                end: date(2026, 7, 13 + index, 13),
+                breakMinutes: 0,
+                isCancelled: false
+            )
+        }
+        let visibleRange = DateInterval(start: date(2026, 7, 13, 0), end: date(2026, 7, 20, 0))
+
+        let breaches = WorkLimitEngine.exceededIntervals(
+            overlapping: visibleRange,
+            shifts: shifts,
+            limitMinutes: 1_680,
+            weekStartDay: 2,
+            includeRollingSevenDays: true,
+            calendar: calendar
+        )
+
+        XCTAssertTrue(breaches.isEmpty)
+    }
+
+    func testExceededIntervalDoesNotMarkDatesThatOnlyTouchItsBoundary() {
+        let breach = WorkLimitBreach(
+            interval: DateInterval(start: date(2026, 7, 13, 0), end: date(2026, 7, 20, 0)),
+            minutes: 1_800,
+            limitMinutes: 1_680,
+            kind: .calendarWeek
+        )
+
+        XCTAssertFalse(breach.overlaps(DateInterval(start: date(2026, 7, 12, 0), end: date(2026, 7, 13, 0))))
+        XCTAssertTrue(breach.overlaps(DateInterval(start: date(2026, 7, 13, 0), end: date(2026, 7, 14, 0))))
+        XCTAssertFalse(breach.overlaps(DateInterval(start: date(2026, 7, 20, 0), end: date(2026, 7, 21, 0))))
+    }
+
     func testOvernightShiftIsClippedAtWeekBoundary() {
         let start = date(2026, 7, 12, 23)
         let end = date(2026, 7, 13, 2)

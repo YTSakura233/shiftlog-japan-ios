@@ -32,6 +32,7 @@ struct CalendarDashboardView: View {
     private var activeShifts: [Shift] { shifts.filter { !$0.isDeleted && $0.status != .cancelled } }
 
     var body: some View {
+        let breaches = workLimitBreaches
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
@@ -40,15 +41,16 @@ struct CalendarDashboardView: View {
                         ForEach(CalendarDisplay.allCases) { Text($0.localizedTitle(locale: locale)).tag($0) }
                     }.pickerStyle(.segmented)
                     periodHeader
+                    if !breaches.isEmpty { exceededRangeLegend }
                     switch display {
                     case .month:
-                        MonthGridView(month: selectedDate, shifts: activeShifts, jobs: jobs, selectedDate: $selectedDate) { date in
+                        MonthGridView(month: selectedDate, shifts: activeShifts, jobs: jobs, breaches: breaches, selectedDate: $selectedDate) { date in
                             selectedDate = date
                             showingDayDetail = true
                         }
-                    case .week: weekView
-                    case .day: dayView
-                    case .year: YearHeatView(year: selectedDate, shifts: activeShifts, breaks: breaks, selectedDate: $selectedDate, display: $display)
+                    case .week: weekView(breaches: breaches)
+                    case .day: dayView(breaches: breaches)
+                    case .year: YearHeatView(year: selectedDate, shifts: activeShifts, breaks: breaks, breaches: breaches, selectedDate: $selectedDate, display: $display)
                     }
                 }.padding()
             }
@@ -108,7 +110,7 @@ struct CalendarDashboardView: View {
         }.buttonStyle(.bordered)
     }
 
-    private var weekView: some View {
+    private func weekView(breaches: [WorkLimitBreach]) -> some View {
         let interval = Calendar.current.dateInterval(of: .weekOfYear, for: selectedDate)!
         let weekShifts = activeShifts.filter { $0.scheduledStart < interval.end && $0.scheduledEnd > interval.start }
         return VStack(spacing: 10) {
@@ -116,17 +118,17 @@ struct CalendarDashboardView: View {
             HStack { metric("summary.scheduled", DurationFormatter.string(minutes: currentRisk.minutes)); metric("summary.remaining", DurationFormatter.string(minutes: currentRisk.remainingMinutes), color: riskColor(currentRisk.level)) }.appCard()
             ForEach(0..<7, id: \.self) { offset in
                 let date = Calendar.current.date(byAdding: .day, value: offset, to: interval.start)!
-                daySection(date, shifts: weekShifts.filter { Calendar.current.isDate($0.scheduledStart, inSameDayAs: date) })
+                daySection(date, shifts: weekShifts.filter { Calendar.current.isDate($0.scheduledStart, inSameDayAs: date) }, isExceeded: isExceeded(date, in: breaches))
             }
         }
     }
 
-    private var dayView: some View {
+    private func dayView(breaches: [WorkLimitBreach]) -> some View {
         let dayShifts = activeShifts.filter { Calendar.current.isDate($0.scheduledStart, inSameDayAs: selectedDate) }
-        return daySection(selectedDate, shifts: dayShifts)
+        return daySection(selectedDate, shifts: dayShifts, isExceeded: isExceeded(selectedDate, in: breaches))
     }
 
-    @ViewBuilder private func daySection(_ date: Date, shifts: [Shift]) -> some View {
+    @ViewBuilder private func daySection(_ date: Date, shifts: [Shift], isExceeded: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(date, format: .dateTime.weekday(.wide).month().day()).font(.headline)
             if shifts.isEmpty {
@@ -138,7 +140,18 @@ struct CalendarDashboardView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("calendar.day.shift")
             }
-        }.frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(isExceeded ? Color.orange.opacity(0.065) : Color.clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            if isExceeded {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.orange.opacity(0.16), lineWidth: 1)
+            }
+        }
+        .accessibilityValue(isExceeded ? Text("calendar.limit.exceeded.accessibility") : Text(""))
     }
 
     private func interval(for shift: Shift) -> ShiftInterval {
@@ -152,6 +165,7 @@ struct CalendarDashboardView: View {
         let value = settings.first ?? UserSettings()
         let intervals = activeShifts.map(interval(for:))
         let weekly = WorkLimitEngine.weeklyRisk(containing: date, shifts: intervals, limitMinutes: value.weeklyLimitMinutes, cautionMinutes: value.cautionMinutes, warningMinutes: value.warningMinutes, weekStartDay: value.weekStartDay)
+        guard value.workLimitEnabled else { return WorkRisk(minutes: weekly.minutes, limitMinutes: weekly.limitMinutes, level: .safe) }
         guard value.rollingSevenDayCheckEnabled else { return weekly }
         let rolling = WorkLimitEngine.rollingSevenDayRisk(endingAt: date, shifts: intervals, limitMinutes: value.weeklyLimitMinutes, cautionMinutes: value.cautionMinutes, warningMinutes: value.warningMinutes)
         return rolling.level > weekly.level || (rolling.level == weekly.level && rolling.minutes > weekly.minutes) ? rolling : weekly
@@ -163,6 +177,51 @@ struct CalendarDashboardView: View {
 
     private func riskColor(_ level: RiskLevel) -> Color {
         switch level { case .safe: .green; case .caution: .orange; case .warning: .orange; case .exceeded: .red }
+    }
+
+    private var workLimitBreaches: [WorkLimitBreach] {
+        let value = settings.first ?? UserSettings()
+        guard value.workLimitEnabled else { return [] }
+        return WorkLimitEngine.exceededIntervals(
+            overlapping: visibleRange,
+            shifts: activeShifts.map(interval(for:)),
+            limitMinutes: value.weeklyLimitMinutes,
+            weekStartDay: value.weekStartDay,
+            includeRollingSevenDays: value.rollingSevenDayCheckEnabled
+        )
+    }
+
+    private var visibleRange: DateInterval {
+        let calendar = Calendar.current
+        switch display {
+        case .year:
+            return calendar.dateInterval(of: .year, for: selectedDate)!
+        case .month:
+            return calendar.monthGridInterval(containing: selectedDate)
+        case .week:
+            return calendar.dateInterval(of: .weekOfYear, for: selectedDate)!
+        case .day:
+            return calendar.dateInterval(of: .day, for: selectedDate)!
+        }
+    }
+
+    private func isExceeded(_ date: Date, in breaches: [WorkLimitBreach]) -> Bool {
+        guard let day = Calendar.current.dateInterval(of: .day, for: date) else { return false }
+        return breaches.contains { $0.overlaps(day) }
+    }
+
+    private var exceededRangeLegend: some View {
+        HStack(spacing: 7) {
+            Capsule()
+                .fill(Color.orange.opacity(0.28))
+                .frame(width: 18, height: 4)
+            Text("calendar.limit.exceeded.legend")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("calendar.limit.exceeded.legend")
     }
 
     private func job(_ id: UUID) -> Job? { jobs.first { $0.id == id } }
@@ -202,6 +261,7 @@ struct MonthGridView: View {
     let month: Date
     let shifts: [Shift]
     let jobs: [Job]
+    let breaches: [WorkLimitBreach]
     @Binding var selectedDate: Date
     let onSelect: (Date) -> Void
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
@@ -209,15 +269,15 @@ struct MonthGridView: View {
     var body: some View {
         let calendar = Calendar.current
         let monthStart = month.startOfMonth
-        let weekday = calendar.component(.weekday, from: monthStart)
-        let leading = (weekday - calendar.firstWeekday + 7) % 7
-        let gridStart = calendar.date(byAdding: .day, value: -leading, to: monthStart)!
+        let gridStart = calendar.monthGridInterval(containing: month).start
         LazyVGrid(columns: columns, spacing: 6) {
             ForEach(calendar.veryShortWeekdaySymbols, id: \.self) { Text($0).font(.caption2).foregroundStyle(.secondary) }
             ForEach(0..<42, id: \.self) { index in
                 let date = calendar.date(byAdding: .day, value: index, to: gridStart)!
                 let dayShifts = shifts.filter { calendar.isDate($0.scheduledStart, inSameDayAs: date) }
                 let isCurrentMonth = calendar.isDate(date, equalTo: monthStart, toGranularity: .month)
+                let dayInterval = calendar.dateInterval(of: .day, for: date)!
+                let isExceeded = breaches.contains { $0.overlaps(dayInterval) }
                 Button { selectedDate = date; onSelect(date) } label: {
                     VStack(spacing: 5) {
                         Text("\(calendar.component(.day, from: date))").font(.subheadline.bold())
@@ -230,10 +290,28 @@ struct MonthGridView: View {
                     .opacity(isCurrentMonth ? 1 : 0.45)
                     .frame(maxWidth: .infinity, minHeight: 62)
                     .contentShape(Rectangle())
-                    .background(calendar.isDate(date, inSameDayAs: selectedDate) ? Color.accentColor.opacity(0.15) : (calendar.isDateInToday(date) ? Color.secondary.opacity(0.10) : Color.clear), in: RoundedRectangle(cornerRadius: 10))
+                    .background {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(calendar.isDate(date, inSameDayAs: selectedDate) ? Color.accentColor.opacity(0.15) : (calendar.isDateInToday(date) ? Color.secondary.opacity(0.10) : Color.clear))
+                            .overlay {
+                                if isExceeded {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(Color.orange.opacity(0.07))
+                                }
+                            }
+                            .overlay(alignment: .bottom) {
+                                if isExceeded {
+                                    Capsule()
+                                        .fill(Color.orange.opacity(0.3))
+                                        .frame(height: 2)
+                                        .padding(.horizontal, 8)
+                                        .padding(.bottom, 4)
+                                }
+                            }
+                    }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(date.formatted(date: .long, time: .omitted)), \(String(format: String(localized: "calendar.shift.count"), dayShifts.count))")
+                .accessibilityLabel("\(date.formatted(date: .long, time: .omitted)), \(String(format: String(localized: "calendar.shift.count"), dayShifts.count))\(isExceeded ? ", \(String(localized: "calendar.limit.exceeded.accessibility"))" : "")")
                 .accessibilityIdentifier("calendar.day.\(date.formatted(.iso8601.year().month().day()))")
             }
         }
@@ -241,7 +319,7 @@ struct MonthGridView: View {
 }
 
 struct YearHeatView: View {
-    let year: Date; let shifts: [Shift]; let breaks: [ShiftBreak]
+    let year: Date; let shifts: [Shift]; let breaks: [ShiftBreak]; let breaches: [WorkLimitBreach]
     @Binding var selectedDate: Date
     @Binding var display: CalendarDisplay
     let columns = Array(repeating: GridItem(.flexible()), count: 3)
@@ -251,12 +329,32 @@ struct YearHeatView: View {
             ForEach(1...12, id: \.self) { month in
                 let date = Calendar.current.date(from: DateComponents(year: Calendar.current.component(.year, from: year), month: month, day: 1))!
                 let minutes = shifts.filter { Calendar.current.isDate($0.scheduledStart, equalTo: date, toGranularity: .month) }.reduce(0) { $0 + Int($1.scheduledEnd.timeIntervalSince($1.scheduledStart) / 60) }
+                let monthInterval = Calendar.current.dateInterval(of: .month, for: date)!
+                let isExceeded = breaches.contains { $0.overlaps(monthInterval) }
                 Button { selectedDate = date; display = .month } label: {
                     VStack { Text(date, format: .dateTime.month(.abbreviated)); Text(DurationFormatter.string(minutes: minutes)).font(.caption.monospacedDigit()).foregroundStyle(.secondary) }
-                        .frame(maxWidth: .infinity, minHeight: 70).background(Color.accentColor.opacity(min(0.55, 0.07 + Double(minutes) / 12_000)), in: RoundedRectangle(cornerRadius: 12))
+                        .frame(maxWidth: .infinity, minHeight: 70)
+                        .background(Color.accentColor.opacity(min(0.55, 0.07 + Double(minutes) / 12_000)), in: RoundedRectangle(cornerRadius: 12))
+                        .overlay {
+                            if isExceeded {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(Color.orange.opacity(0.28), lineWidth: 1)
+                            }
+                        }
                 }.buttonStyle(.plain)
+                    .accessibilityValue(isExceeded ? Text("calendar.limit.exceeded.accessibility") : Text(""))
             }
         }
+    }
+}
+
+private extension Calendar {
+    func monthGridInterval(containing month: Date) -> DateInterval {
+        let monthStart = dateInterval(of: .month, for: month)?.start ?? startOfDay(for: month)
+        let leading = (component(.weekday, from: monthStart) - firstWeekday + 7) % 7
+        let start = date(byAdding: .day, value: -leading, to: monthStart) ?? monthStart
+        let end = date(byAdding: .day, value: 42, to: start) ?? start
+        return DateInterval(start: start, end: end)
     }
 }
 

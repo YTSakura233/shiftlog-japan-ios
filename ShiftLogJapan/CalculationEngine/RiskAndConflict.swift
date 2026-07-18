@@ -63,6 +63,22 @@ struct WorkRisk: Equatable, Sendable {
     var remainingMinutes: Int { max(0, limitMinutes - minutes) }
 }
 
+enum WorkLimitIntervalKind: Equatable, Sendable {
+    case calendarWeek
+    case rollingSevenDays
+}
+
+struct WorkLimitBreach: Equatable, Sendable {
+    let interval: DateInterval
+    let minutes: Int
+    let limitMinutes: Int
+    let kind: WorkLimitIntervalKind
+
+    func overlaps(_ range: DateInterval) -> Bool {
+        interval.start < range.end && interval.end > range.start
+    }
+}
+
 enum WorkLimitEngine {
     static func weeklyRisk(
         containing date: Date, shifts: [ShiftInterval], limitMinutes: Int,
@@ -85,6 +101,55 @@ enum WorkLimitEngine {
         let interval = DateInterval(start: start, end: end)
         let total = shifts.reduce(0) { $0 + $1.effectiveMinutes(overlapping: interval) }
         return risk(minutes: total, limit: limitMinutes, caution: cautionMinutes, warning: warningMinutes)
+    }
+
+    static func exceededIntervals(
+        overlapping visibleRange: DateInterval,
+        shifts: [ShiftInterval],
+        limitMinutes: Int,
+        weekStartDay: Int = 2,
+        includeRollingSevenDays: Bool,
+        calendar baseCalendar: Calendar = .current
+    ) -> [WorkLimitBreach] {
+        guard visibleRange.duration > 0, limitMinutes > 0 else { return [] }
+
+        var result: [WorkLimitBreach] = []
+        var weekCalendar = baseCalendar
+        weekCalendar.firstWeekday = weekStartDay
+
+        if let firstWeek = weekCalendar.dateInterval(of: .weekOfYear, for: visibleRange.start) {
+            var week = firstWeek
+            while week.start < visibleRange.end {
+                let minutes = totalMinutes(in: week, shifts: shifts)
+                if minutes > limitMinutes {
+                    result.append(WorkLimitBreach(interval: week, minutes: minutes, limitMinutes: limitMinutes, kind: .calendarWeek))
+                }
+                guard let next = weekCalendar.dateInterval(of: .weekOfYear, for: week.end) else { break }
+                week = next
+            }
+        }
+
+        guard includeRollingSevenDays else { return result }
+
+        var endingDate = baseCalendar.startOfDay(for: visibleRange.start)
+        let endOfCandidates = baseCalendar.date(byAdding: .day, value: 6, to: visibleRange.end) ?? visibleRange.end
+        while endingDate < endOfCandidates {
+            let end = baseCalendar.date(byAdding: .day, value: 1, to: endingDate) ?? endingDate
+            let start = baseCalendar.date(byAdding: .day, value: -7, to: end) ?? end
+            let interval = DateInterval(start: start, end: end)
+            let minutes = totalMinutes(in: interval, shifts: shifts)
+            if minutes > limitMinutes {
+                result.append(WorkLimitBreach(interval: interval, minutes: minutes, limitMinutes: limitMinutes, kind: .rollingSevenDays))
+            }
+            guard let next = baseCalendar.date(byAdding: .day, value: 1, to: endingDate), next > endingDate else { break }
+            endingDate = next
+        }
+
+        return result
+    }
+
+    private static func totalMinutes(in interval: DateInterval, shifts: [ShiftInterval]) -> Int {
+        shifts.reduce(0) { $0 + $1.effectiveMinutes(overlapping: interval) }
     }
 
     private static func risk(minutes: Int, limit: Int, caution: Int, warning: Int) -> WorkRisk {

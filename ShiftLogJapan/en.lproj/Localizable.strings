@@ -67,6 +67,8 @@
 "calendar.day.add" = "Add shift";
 "calendar.day.detail" = "Day details";
 "calendar.day.detail.title" = "Shifts this day";
+"calendar.limit.exceeded.legend" = "Soft highlight: above your hour setting";
+"calendar.limit.exceeded.accessibility" = "This date is within a period above your hour setting";
 "job.hourly.placeholder" = "For example, 1,200";
 "job.hourly.unit" = "JPY/hour";
 "job.hourly.large.title" = "Confirm hourly wage";

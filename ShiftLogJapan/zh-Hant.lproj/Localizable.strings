@@ -73,6 +73,8 @@
 "calendar.day.add" = "新增安排";
 "calendar.day.detail" = "日期詳情";
 "calendar.day.detail.title" = "當天安排";
+"calendar.limit.exceeded.legend" = "淡色區域：超過設定工時";
+"calendar.limit.exceeded.accessibility" = "此日期位於超過設定工時的區間內";
 "job.hourly.placeholder" = "例如 1,200";
 "job.hourly.unit" = "日圓/小時";
 "job.hourly.large.title" = "請確認時薪";

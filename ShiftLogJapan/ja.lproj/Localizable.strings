@@ -64,6 +64,8 @@
 "calendar.day.add" = "予定を追加";
 "calendar.day.detail" = "日付の詳細";
 "calendar.day.detail.title" = "この日の予定";
+"calendar.limit.exceeded.legend" = "淡色の範囲：設定時間を超過";
+"calendar.limit.exceeded.accessibility" = "設定時間を超えた期間に含まれる日付です";
 "job.hourly.placeholder" = "例：1,200";
 "job.hourly.unit" = "円/時";
 "job.hourly.large.title" = "時給を確認してください";
